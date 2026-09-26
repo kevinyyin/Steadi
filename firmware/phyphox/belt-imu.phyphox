@@ -1,0 +1,55 @@
+<phyphox version="1.7" locale="en">
+    <title>Belt IMU</title>
+    <category>Fall-risk check-in</category>
+    <description>Accelerometer (with gravity) and gyroscope at 100 Hz for the check-in laptop. Turn on Remote access, then run: checkin serve --source phyphox:http://PHONE-IP:8080</description>
+    <data-containers>
+        <container size="0">acc_time</container>
+        <container size="0">accX</container>
+        <container size="0">accY</container>
+        <container size="0">accZ</container>
+        <container size="0">gyr_time</container>
+        <container size="0">gyrX</container>
+        <container size="0">gyrY</container>
+        <container size="0">gyrZ</container>
+    </data-containers>
+    <input>
+        <sensor type="accelerometer" rate="100">
+            <output component="x">accX</output>
+            <output component="y">accY</output>
+            <output component="z">accZ</output>
+            <output component="t">acc_time</output>
+        </sensor>
+        <sensor type="gyroscope" rate="100">
+            <output component="x">gyrX</output>
+            <output component="y">gyrY</output>
+            <output component="z">gyrZ</output>
+            <output component="t">gyr_time</output>
+        </sensor>
+    </input>
+    <views>
+        <view label="Belt">
+            <graph label="Acceleration" labelX="t" unitX="s" labelY="a" unitY="m/s²" partialUpdate="true">
+                <input axis="x">acc_time</input>
+                <input axis="y">accZ</input>
+            </graph>
+            <graph label="Gyroscope" labelX="t" unitX="s" labelY="ω" unitY="rad/s" partialUpdate="true">
+                <input axis="x">gyr_time</input>
+                <input axis="y">gyrZ</input>
+            </graph>
+        </view>
+    </views>
+    <export>
+        <set name="Accelerometer">
+            <data name="Time (s)">acc_time</data>
+            <data name="Acceleration x (m/s^2)">accX</data>
+            <data name="Acceleration y (m/s^2)">accY</data>
+            <data name="Acceleration z (m/s^2)">accZ</data>
+        </set>
+        <set name="Gyroscope">
+            <data name="Time (s)">gyr_time</data>
+            <data name="Gyroscope x (rad/s)">gyrX</data>
+            <data name="Gyroscope y (rad/s)">gyrY</data>
+            <data name="Gyroscope z (rad/s)">gyrZ</data>
+        </set>
+    </export>
+</phyphox>

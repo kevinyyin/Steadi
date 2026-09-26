@@ -6,7 +6,7 @@ Plan: docs/superpowers/plans/2026-09-26-fall-checkin-mvp.md
 - [x] 2. Step scoring (signals)
 - [x] 3. STEADI logic
 - [x] 4. People store and recordings
-- [ ] 5. Clock and motion sources
+- [x] 5. Clock and motion sources
 - [ ] 6. Base stations and protocol
 - [ ] 7. Session controller
 - [ ] 8. Simulated: Dad history

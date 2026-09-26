@@ -233,6 +233,7 @@ def adherence(logs, today, weeks=8):
                 # a set or hold whose sensor data dropped out has no count: it adds nothing
                 "reps": sum(s.get("reps") or 0 for lg in week for s in lg["sets"]),
                 "hold_s": round(sum(h.get("hold_s") or 0.0 for lg in week for h in lg["holds"]), 1),
+                "simulated": any(lg.get("simulated") for lg in week),
             }
         )
     recent = {lg["date"][:10] for lg in logs if (today - date.fromisoformat(lg["date"][:10])).days < 7}
@@ -247,6 +248,7 @@ def trends(person):
     return {
         "dates": [c["date"][:10] for c in cs],
         "levels": [c["level"] for c in cs],
+        "simulated": [bool(c.get("simulated")) for c in cs],
         "series": series,
         "cutoffs": {k: latest_cut.get(k) for k in ("tug_s", "chair_stands", "tandem_s")},
     }

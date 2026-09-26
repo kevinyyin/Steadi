@@ -21,6 +21,7 @@ TUG_TIMEOUT_S = 60.0
 BALANCE_S = 10.0
 SET_IDLE_S = 8.0  # a sit-to-stand set ends after this long without a new rep
 SET_MAX_S = 120.0
+SETTLE_S = 1.0  # wait up to this long for late samples (Wi-Fi batching, phone polling) before scoring a step
 
 CHECKIN_STEPS = [
     ("tug", "Timed Up and Go",
@@ -134,6 +135,17 @@ class Controller:
         d = self.samples()
         d = d[d[:, 0] >= t_go - PRE_S]
         return d[:, 0], d[:, 1:4], d[:, 4:7]
+
+    async def _score(self, sid, t_go, t_end):
+        """Score a step once its data has arrived. Hardware samples reach us late, so scoring at t_end
+        straight away would read the missing tail as a short hold or a dropout. Scores the same
+        window `checkin replay` does: from 1 s before "Go" to t_end."""
+        deadline = self.clock.now() + SETTLE_S
+        while self.clock.now() < deadline and self.samples()[:, 0].max(initial=-np.inf) < t_end:
+            await self.tick()
+        t, acc, gyro = self._window(t_go)
+        keep = t <= t_end
+        return signals.score_step(sid, t[keep], acc[keep], gyro[keep], t_go, t_end)
 
     # ---- events --------------------------------------------------------------------------------
     def _emit(self):
@@ -303,7 +315,7 @@ class Controller:
             if now >= next_check:
                 next_check = now + CHECK_S
                 if signals.tug_end(*self._window(t_go), t_go) is not None:
-                    result, cue = signals.score_step(sid, *self._window(t_go), t_go, now), "stop"
+                    result, cue = await self._score(sid, t_go, now), "stop"
                     break
             if now - t_go >= TUG_TIMEOUT_S:
                 result, cue = {"tug_s": None, "method": "timeout"}, "error"
@@ -335,7 +347,7 @@ class Controller:
         if arms:  # STEADI: stop if arms are needed and record 0
             result = {"stands": 0, "arms_used": True}
         else:
-            result = {**signals.score_step(sid, *self._window(t_go), t_go, now), "arms_used": False}
+            result = {**(await self._score(sid, t_go, now)), "arms_used": False}
         self._end(sid, t_go, now, result, cue=None if stopped else "stop")
         return result
 
@@ -360,7 +372,7 @@ class Controller:
             if now >= t_go + seconds + 0.2:
                 t_end = t_go + seconds
                 break
-        result = signals.score_step(sid, *self._window(t_go), t_go, t_end)
+        result = await self._score(sid, t_go, t_end)
         if pressed:
             result.update(broke=True, method="button")
         result.setdefault("method", "sensor")
@@ -390,6 +402,6 @@ class Controller:
                     break
             if now - last > SET_IDLE_S or now - t_go > SET_MAX_S:
                 break
-        result = {**signals.score_step(sid, *self._window(t_go), t_go, now), "target": reps}
+        result = {**(await self._score(sid, t_go, now)), "target": reps}
         self._end(sid, t_go, now, result)
         return result

@@ -1,6 +1,9 @@
 import asyncio
 from datetime import date
 
+import numpy as np
+import pytest
+
 from checkin import sim, steadi
 from checkin.base import VirtualBase
 from checkin.clock import FakeClock
@@ -175,3 +178,34 @@ def test_a_dead_sensor_in_exercise_does_not_break_the_dashboard(tmp_path):
     assert all("error" in r for r in record["sets"] + record["holds"])  # not measured, never 0
     d = steadi.dashboard(store.get(person["id"]), date.today())  # the next plan and adherence still work
     assert d["adherence"]["weeks"][-1]["reps"] == 0 and d["plan"]["balance"]["stance"] == "feet_together"
+
+
+class LateSource(SimSource):
+    """Wi-Fi hardware: each sample reaches the laptop LAG_S after it was taken."""
+
+    LAG_S = 0.3
+
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.buf = EMPTY
+
+    def read(self):
+        self.buf = np.vstack([self.buf, super().read()])
+        ready = self.buf[:, 0] <= self.clock.now() - self.LAG_S
+        out, self.buf = self.buf[ready], self.buf[~ready]
+        return out
+
+
+@pytest.mark.parametrize("lag", [0.3, 0.7])  # ESP32 broadcasts held for the next AP beacon; phyphox HTTP polling
+def test_late_sensor_data_is_waited_for_not_scored_short(tmp_path, lag):
+    ctl, source, base, store, person = make(tmp_path, source_cls=type("Late", (LateSource,), {"LAG_S": lag}))
+    record = drive(ctl, ctl.run_session(person["id"], "checkin"))
+    m = record["metrics"]
+    assert [sid for sid, r in record["steps"].items() if "error" in r] == []
+    assert (m["feet_together_s"], m["semi_tandem_s"], m["tandem_s"]) == (10.0, 10.0, 10.0) and record["flags"] == []
+    assert abs(m["tug_s"] - source.truth["tug"]["tug_s"]) < 0.5
+    assert m["chair_stands"] == source.truth["chair_stand"]["stands"]
+    plan = {"sit_to_stand": {"sets": 1, "reps": 5},
+            "balance": {"stance": "feet_together", "holds": 1, "target_s": 20.0}}
+    ex = drive(ctl, ctl.run_session(person["id"], "exercise", plan))
+    assert ex["sets"][0]["reps"] == 5 and ex["holds"][0]["hold_s"] == 20.0  # a full hold reaches its target

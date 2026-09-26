@@ -105,9 +105,10 @@ def test_alert_wording_never_overclaims():
 
 
 def test_plan_leans_on_the_weakest_area():
-    def plan_after(**kw):
+    def plan_after(**kw):  # the same result two check-ins in a row
         p = person()  # 78-year-old man: the STEADI line is 11 stands
         add(p, metrics(**kw), 0)
+        add(p, metrics(**kw), 1)
         plan = steadi.make_plan(p)
         return plan["sit_to_stand"]["sets"], plan["balance"]["holds"]
 
@@ -117,6 +118,17 @@ def test_plan_leans_on_the_weakest_area():
     assert plan_after(stands=13) == (2, 2)  # a full tandem hold is not a weak area
     assert plan_after(stands=16, tandem=6.0) == (2, 4)
     assert plan_after(stands=9, tandem=6.0) == (3, 4)
+
+
+def test_one_low_check_in_does_not_change_the_plan():
+    p = person()
+    add(p, metrics(stands=13), 0)
+    add(p, metrics(stands=9, tandem=6.0), 1)  # could be a bad day
+    plan = steadi.make_plan(p)
+    assert (plan["sit_to_stand"]["sets"], plan["balance"]["holds"]) == (2, 2)
+    assert "if the next check-in is low too" in plan["why"]
+    add(p, metrics(stands=13), 2)  # back to normal: nothing changes
+    assert (steadi.make_plan(p)["sit_to_stand"]["sets"], steadi.make_plan(p)["balance"]["holds"]) == (2, 2)
 
 
 def test_balance_holds_progress_once_every_hold_hits_its_target():

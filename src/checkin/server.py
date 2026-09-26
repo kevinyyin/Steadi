@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import steadi
+from . import steadi, summary
 from .controller import Busy
 
 STATIC = Path(__file__).parent / "static"
@@ -108,6 +108,10 @@ def create_app(controller, store, today=date.today):
     @app.get("/api/people/{pid}/dashboard")
     def dashboard(pid: str):
         return steadi.dashboard(person_or_404(pid), today())
+
+    @app.get("/api/people/{pid}/summary")
+    def person_summary(pid: str):
+        return summary.summaries(steadi.dashboard(person_or_404(pid), today()))
 
     @app.post("/api/session", status_code=202)
     def start_session(body: SessionIn):

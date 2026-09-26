@@ -165,6 +165,20 @@ def test_exercise_session_counts_reps_and_times_holds(tmp_path):
     assert store.get(person["id"])["exercise"][-1]["id"] == record["id"]
 
 
+@pytest.mark.parametrize("stance, feet", [
+    ("feet_together", "feet together"),
+    ("semi_tandem", "one foot a little ahead of the other"),
+    ("tandem", "one foot right in front of the other"),
+])
+def test_exercise_hold_prompt_uses_plain_words(tmp_path, stance, feet):
+    ctl, source, base, store, person = make(tmp_path)
+    plan = {"sit_to_stand": {"sets": 1, "reps": 1}, "balance": {"stance": stance, "holds": 1, "target_s": 5.0}}
+    prompts = set()
+    drive(ctl, ctl.run_session(person["id"], "exercise", plan), lambda c, sid: prompts.add(c.state["prompt"]))
+    hold = next(p for p in prompts if "counter" in p)
+    assert f"one hand resting on it, {feet}." in hold and "tandem" not in hold
+
+
 def test_exercise_without_a_plan_uses_the_persons_plan(tmp_path):
     ctl, source, base, store, person = make(tmp_path)
     record = drive(ctl, ctl.run_session(person["id"], "exercise"))

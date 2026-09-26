@@ -1,7 +1,7 @@
 # Check-in API
 
 Everything the dashboard shows comes from here, so the UI can be rebuilt without touching the backend.
-Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network and never leaves it).
+Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside call is the optional AI family summary (below), which sends the doctor summary text, with no name, to OpenAI.
 
 Units: seconds (`_s`), percent (`_pct`), sway in m/s² (RMS horizontal acceleration at the lower back).
 `null` means "not measured" (for example the belt dropped out); it never means zero.
@@ -134,6 +134,22 @@ Everything the family view shows for one person.
 - `sit_to_stand.reps` (8 to start, 10 at most) and `balance.stance` move up one step once every set or hold in the latest session hit its target, but only after 3 or more exercise days in the last 7. Otherwise they stay the same, and `why` says so when they would have moved up. Sessions shorter than 8 reps (the quick demo) don't count.
 
 `trends.cutoffs` are STEADI lines for charts: TUG flags at 12 s or more; chair stands flag below the number; tandem flags below 10 s. `adherence.weeks` covers the last 8 weeks (Monday start), oldest first. `trends.simulated` (per check-in) and `adherence.weeks[].simulated` (any simulated session that week) say which chart points to label "Simulated".
+
+### `GET /api/people/{id}/summary`
+
+Two text summaries of the dashboard, for a "summary" panel and for printing before a doctor's visit.
+
+```json
+{"doctor": "Fall-risk screening summary: ...\n- Timed Up and Go: 10.8 s (flags at 12 s or more; ...)\n...",
+ "family": "Simulated data. The check-in on 2026-09-26 raised no flags. ...",
+ "family_by": "ai",
+ "simulated": true}
+```
+
+- `doctor`: built only from the recorded numbers, never by AI: profile, key questions, latest results against the STEADI cutoffs, change from baseline, first/worst/latest per metric, exercise adherence and plan. Plain text with line breaks (show it in `<pre>` or with `white-space: pre-wrap`). It has no name in it.
+- `family`: 3–5 plain sentences. `family_by` is `"ai"` when an OpenAI model wrote it from the `doctor` text, or `"template"` (fixed wording) when there's no `OPENAI_API_KEY`, no internet, or the AI reply failed a check: a number that isn't in the data, or a forbidden claim (diagnosis, predicting a fall, guaranteed prevention, medication). Label the AI text as AI-written.
+- With an AI key set, the call can take a few seconds: fetch it when the user asks, not with every dashboard load.
+- `simulated`: the text already starts with "Simulated data." / "SIMULATED DATA"; still show the usual Simulated tag.
 
 ### Check-in record
 

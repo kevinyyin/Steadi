@@ -150,7 +150,8 @@ def balance_hold(t, acc, gyro, t_go, t_end):
     broke = (dev > BREAK_ACC_G) | (rot > BREAK_GYRO_DPS)
     broke &= t <= t_end
     idx = np.flatnonzero(broke)
-    stop = t[idx[0]] if len(idx) else (t_end if t[-1] >= t_end - 0.05 else t[-1])  # held to the end
+    # No break seen and the data reaches t_end (short tail gaps allowed, as mid-stance): held to the end
+    stop = t[idx[0]] if len(idx) else (t_end if t[-1] >= t_end - MAX_GAP_S else t[-1])
     hold = max(0.0, float(stop - t_go))
     during = t < stop
     if during.sum() < 10:

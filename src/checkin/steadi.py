@@ -215,11 +215,21 @@ def next_reps(logs, progress=True):
     return EXERCISE_REPS
 
 
-def _low_areas(checkin):
-    """(chair stands at or near the STEADI line, balance flag) in one check-in."""
+def _near_line(checkin):
     m, cut = checkin["metrics"], checkin["cutoffs"].get("chair_stands")
-    near_line = cut is not None and m.get("chair_stands") is not None and m["chair_stands"] < cut + CHAIR_LOW_MARGIN
-    return near_line, "balance" in {f["id"] for f in checkin["flags"]}
+    return cut is not None and m["chair_stands"] < cut + CHAIR_LOW_MARGIN
+
+
+def _balance_flag(checkin):
+    return "balance" in {f["id"] for f in checkin["flags"]}
+
+
+def _low_twice(checkins, key, low):
+    """(low in the latest result, low in the two latest results) for one metric. Check-ins that didn't
+    measure it (belt dropout) are skipped: "not measured" is neither low nor fine."""
+    measured = [c for c in reversed(checkins) if c["metrics"].get(key) is not None][:2]
+    now = bool(measured) and low(measured[0])
+    return now, now and len(measured) == 2 and low(measured[1])
 
 
 def make_plan(person, today=None):
@@ -236,32 +246,36 @@ def make_plan(person, today=None):
     checkins = person["checkins"]
     latest = checkins[-1] if checkins else None
     chair_low = balance_low = False
-    why = "no check-in yet: the standard plan"
+    why = "no check-in yet: the standard sets and holds"
     if latest:
         declining = {d["id"] for d in latest.get("declines", [])}  # already two check-ins in a row
-        now_chair, now_balance = _low_areas(latest)
-        before_chair, before_balance = _low_areas(checkins[-2]) if len(checkins) > 1 else (False, False)
-        near_line, balance_flag = now_chair and before_chair, now_balance and before_balance
+        now_chair, near_line = _low_twice(checkins, "chair_stands", _near_line)
+        now_balance, balance_flag = _low_twice(checkins, "tandem_s", _balance_flag)
         chair_low = near_line or "chair_stands" in declining
         balance_low = balance_flag or "tandem_s" in declining
-        watching = [name for low, name in [(now_chair and not chair_low, "chair stands"),
-                                           (now_balance and not balance_low, "the tandem stance")] if low]
+        watching = [text for on, text in [
+            (now_chair and not chair_low, "chair stands at or near the STEADI line"),
+            (now_balance and not balance_low, "the tandem stance under 10 s"),
+        ] if on]
         reasons = [
             (near_line, "more sit-to-stands: chair stands at or near the STEADI line two check-ins in a row"),
             (chair_low and not near_line, "more sit-to-stands: chair stands have slipped below their baseline"),
             (balance_flag, "more balance holds: the tandem stance under 10 s two check-ins in a row"),
             (balance_low and not balance_flag, "more balance holds: the tandem stance has slipped below its baseline"),
-            (watching, f"{' and '.join(watching)} low this time: the plan adds more if the next check-in is low too"),
+            (watching, f"{' and '.join(watching)} in the latest result: "
+                       "the plan adds more if the next check-in shows the same"),
         ]
-        why = "; ".join(text for on, text in reasons if on) or "no weak area in the latest check-in: the standard plan"
+        why = ("; ".join(text for on, text in reasons if on)
+               or "no weak area in the latest check-in: the standard sets and holds")
     days = _days_in_last_week(logs, today)
     progress = days >= PROGRESS_MIN_DAYS
-    if logs and not progress:
-        why += f"; same level as last time: {days} of {PROGRESS_MIN_DAYS} exercise days in the last 7 needed to move up"
+    reps, stance = next_reps(logs, progress), next_stance(logs, progress)
+    if (reps, stance) != (next_reps(logs), next_stance(logs)):  # it would move up, but practice has been patchy
+        why += (f"; holding at this level until there are {PROGRESS_MIN_DAYS} exercise days in a week "
+                f"({days} in the last 7)")
     return {
-        "sit_to_stand": {"sets": 3 if chair_low else 2, "reps": next_reps(logs, progress)},
-        "balance": {"stance": next_stance(logs, progress), "holds": 4 if balance_low else 2,
-                    "target_s": EXERCISE_HOLD_S},
+        "sit_to_stand": {"sets": 3 if chair_low else 2, "reps": reps},
+        "balance": {"stance": stance, "holds": 4 if balance_low else 2, "target_s": EXERCISE_HOLD_S},
         "why": why,
     }
 

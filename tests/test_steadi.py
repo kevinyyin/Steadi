@@ -112,7 +112,7 @@ def test_plan_leans_on_the_weakest_area():
         plan = steadi.make_plan(p)
         return plan["sit_to_stand"]["sets"], plan["balance"]["holds"]
 
-    assert steadi.make_plan(person())["why"] == "no check-in yet: the standard plan"
+    assert steadi.make_plan(person())["why"] == "no check-in yet: the standard sets and holds"
     assert plan_after(stands=9) == (3, 2)  # below the line
     assert plan_after(stands=12) == (3, 2)  # near it still counts as low
     assert plan_after(stands=13) == (2, 2)  # a full tandem hold is not a weak area
@@ -126,7 +126,7 @@ def test_one_low_check_in_does_not_change_the_plan():
     add(p, metrics(stands=9, tandem=6.0), 1)  # could be a bad day
     plan = steadi.make_plan(p)
     assert (plan["sit_to_stand"]["sets"], plan["balance"]["holds"]) == (2, 2)
-    assert "if the next check-in is low too" in plan["why"]
+    assert "in the latest result: the plan adds more if the next check-in shows the same" in plan["why"]
     add(p, metrics(stands=13), 2)  # back to normal: nothing changes
     assert (steadi.make_plan(p)["sit_to_stand"]["sets"], steadi.make_plan(p)["balance"]["holds"]) == (2, 2)
 
@@ -190,12 +190,18 @@ def test_a_slow_decline_adds_exercise_for_that_area():
     assert [d["id"] for d in p["checkins"][-1]["declines"]] == ["chair_stands"]
     plan = steadi.make_plan(p, TODAY)
     assert plan["sit_to_stand"]["sets"] == 3 and "slipped below their baseline" in plan["why"]
+    q = person(age=62, sex="female")
+    for i, stands in enumerate([17, 17, 17, 13, 13]):  # near the line (under 14) and declining: one reason, not two
+        add(q, metrics(stands=stands), i)
+    why = steadi.make_plan(q, TODAY)["why"]
+    assert "near the STEADI line two check-ins in a row" in why and "slipped" not in why
 
 
 def test_missed_sessions_pause_progression():
     plan = plan_for(session(10), session(25))  # every target hit, but 1 exercise day in the last 7
     assert plan["sit_to_stand"]["reps"] == 8 and plan["balance"]["stance"] == "feet_together"
-    assert "1 of 3 exercise days" in plan["why"]
+    assert "until there are 3 exercise days in a week (1 in the last 7)" in plan["why"]
+    assert plan_for(session(19), session(24), session(25))["sit_to_stand"]["reps"] == 8  # the 19th is 7 days ago: out
     plan = plan_for(session(10), session(23), session(24), session(25))  # 3 days: move up
     assert plan["sit_to_stand"]["reps"] == 9 and plan["balance"]["stance"] == "semi_tandem"
     assert "exercise days" not in plan["why"]
@@ -205,3 +211,23 @@ def test_reps_stay_within_sets_of_5_to_10():
     # a longer session sent through the API must not push the plan past 10 reps
     assert plan_for(session(22), session(24), session(25, reps=11, target=12))["sit_to_stand"]["reps"] == 10
     assert plan_for(session(22), session(24), session(25, reps=12, target=12))["sit_to_stand"]["reps"] == 10
+
+
+def test_plan_wording_matches_what_the_plan_does():
+    p = person()  # STEADI line 11: 12 stands is near it, not below it
+    add(p, metrics(stands=12), 0)
+    why = steadi.make_plan(p, TODAY)["why"]
+    assert "at or near the STEADI line in the latest result" in why and "low" not in why
+    top = [session(d, reps=10, target=10, stance="tandem") for d in (10, 25)]  # 1 day, but nothing left to move up
+    assert "exercise days" not in plan_for(*top)["why"]
+    demo = {"date": "2026-09-25T09:00:00", "sets": [{"reps": 5, "target": 5}], "holds": []}  # quick demo only
+    assert "exercise days" not in plan_for(demo)["why"]
+
+
+def test_a_check_in_that_measured_nothing_is_skipped_not_a_reset():
+    p = person()  # STEADI line 11
+    add(p, metrics(stands=9, tandem=6.0), 0)
+    add(p, metrics(stands=None, tandem=None), 1)  # the belt dropped out: not measured
+    add(p, metrics(stands=9, tandem=6.0), 2)
+    plan = steadi.make_plan(p, TODAY)
+    assert (plan["sit_to_stand"]["sets"], plan["balance"]["holds"]) == (3, 4)

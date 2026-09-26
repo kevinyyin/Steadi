@@ -150,7 +150,9 @@ def balance_hold(t, acc, gyro, t_go, t_end):
     broke = (dev > BREAK_ACC_G) | (rot > BREAK_GYRO_DPS)
     broke &= t <= t_end
     idx = np.flatnonzero(broke)
-    # No break seen and the data reaches t_end (short tail gaps allowed, as mid-stance): held to the end
+    # No break seen and the data reaches t_end (short tail gaps allowed, as mid-stance): held to the end.
+    # Trade-off: a break inside a lost tail of <= MAX_GAP_S goes unseen, instead of every lost tail reading
+    # as a short hold and a false balance flag. Longer gaps are "not measured" (data_error).
     stop = t[idx[0]] if len(idx) else (t_end if t[-1] >= t_end - MAX_GAP_S else t[-1])
     hold = max(0.0, float(stop - t_go))
     during = t < stop

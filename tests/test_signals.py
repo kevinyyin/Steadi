@@ -109,3 +109,13 @@ def test_score_step_dispatches_on_the_step_id():
     with pytest.raises(ValueError):
         score_step("jumping_jacks", t, acc, gyro, 0.0, 20.0)
     assert np.isfinite(r["sway"])
+
+
+def test_lost_packets_at_the_end_of_a_stance_are_not_a_short_hold():
+    t, acc, gyro, _ = sim.simulate("balance_tandem", seed=1)
+    tail = t < 9.7  # UDP packets from 9.7 s to the 10 s mark never arrived (windows end at t_end)
+    r = score_step("balance_tandem", t[tail], acc[tail], gyro[tail], 0.0, 10.0)
+    assert r["hold_s"] == 10.0 and not r["broke"]  # a short gap is treated like one mid-stance
+    lost = t < 9.0
+    r = score_step("balance_tandem", t[lost], acc[lost], gyro[lost], 0.0, 10.0)
+    assert r == {"error": "sensor data dropped out"}  # a longer one is still "not measured", never a flag

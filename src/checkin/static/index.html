@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fall-risk check-in</title>
+<!-- Bare-bones on purpose: every value here comes from the API in docs/API.md, so this page can be replaced. -->
+<style>
+  body { font-family: system-ui, sans-serif; margin: 1rem; max-width: 60rem; }
+  section { border-top: 1px solid #ccc; padding: 0.5rem 0 1rem; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid #ccc; padding: 0.2rem 0.5rem; text-align: left; vertical-align: top; }
+  .led { display: inline-block; width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 1px solid #333;
+         vertical-align: middle; background: #eee; }
+  .led.blue { background: #2563eb; } .led.green { background: #16a34a; }
+  .led.amber { background: #f59e0b; } .led.red { background: #dc2626; }
+  .tag { background: #fde68a; padding: 0 0.3rem; }
+  .flag { color: #b91c1c; font-weight: bold; }
+  #button { font-size: 1.4rem; padding: 0.8rem 2rem; }
+  .chart { max-width: 34rem; }
+  label { margin-right: 0.8rem; }
+</style>
+</head>
+<body>
+<h1>Fall-risk check-in</h1>
+<p>Fall-risk screening with the CDC's STEADI tests: it flags increased fall risk and tracks change from baseline.</p>
+
+<section>
+  <label>Person <select id="person"></select></label> <span id="person-tag"></span>
+  <details id="profile-box">
+    <summary>Profile and STEADI key questions (step 0)</summary>
+    <form id="profile">
+      <p>
+        <label>Name <input name="name" required maxlength="60"></label>
+        <label>Age <input name="age" type="number" min="18" max="120"></label>
+        <label>Sex (for the chair-stand norm)
+          <select name="sex"><option value="">–</option><option value="male">Male</option>
+            <option value="female">Female</option></select></label>
+      </p>
+      <fieldset>
+        <legend>STEADI key questions</legend>
+        <label><input type="checkbox" name="fallen"> Fallen in the past year?</label><br>
+        <label><input type="checkbox" name="unsteady"> Feels unsteady when standing or walking?</label><br>
+        <label><input type="checkbox" name="worried"> Worries about falling?</label>
+      </fieldset>
+      <p><button type="submit">Save profile</button> <button type="button" id="new-person">Save as new person</button>
+        <span id="profile-msg"></span></p>
+    </form>
+  </details>
+</section>
+
+<section>
+  <h2>Base station</h2>
+  <p>LED <span id="led" class="led"></span> · base: <span id="base"></span> · sensor: <span id="source"></span></p>
+  <p><button id="button">Button</button></p>
+  <p>
+    <button id="start-checkin">Start check-in</button>
+    <button id="start-exercise">Start exercise (plan)</button>
+    <button id="start-quick">Quick exercise: 5 sit-to-stands</button>
+    <button id="arms-used">Arms used: chair stand scores 0</button>
+    <button id="cancel">Cancel session</button>
+  </p>
+  <p id="msg"></p>
+</section>
+
+<section>
+  <h2>Step progress</h2>
+  <p id="prompt"></p>
+  <p id="live"></p>
+  <ul id="steps"></ul>
+</section>
+
+<section>
+  <h2>Family alert</h2>
+  <div id="alert"></div>
+</section>
+
+<section>
+  <h2>Latest check-in vs. STEADI cutoffs</h2>
+  <div id="results"></div>
+</section>
+
+<section>
+  <h2>Trends</h2>
+  <div class="chart"><canvas id="chart-tug"></canvas></div>
+  <div class="chart"><canvas id="chart-chair"></canvas></div>
+  <div class="chart"><canvas id="chart-tandem"></canvas></div>
+  <div class="chart"><canvas id="chart-cost"></canvas></div>
+</section>
+
+<section>
+  <h2>Exercise</h2>
+  <p id="plan"></p>
+  <div class="chart"><canvas id="chart-adherence"></canvas></div>
+  <div id="sessions"></div>
+</section>
+
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

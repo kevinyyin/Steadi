@@ -111,3 +111,8 @@ def test_websocket_sends_state_then_events(client):
 def test_uvicorn_can_serve_the_websocket():
     # TestClient doesn't need it, but the real server does: without it /ws fails and the page never updates
     assert importlib.util.find_spec("websockets"), "add the websockets package"
+
+
+def test_index_page_is_served(client):
+    r = client.get("/")
+    assert r.status_code == 200 and "<html" in r.text.lower()

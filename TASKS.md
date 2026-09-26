@@ -13,6 +13,6 @@ Plan: docs/superpowers/plans/2026-09-26-fall-checkin-mvp.md
 - [x] 9. API server and docs/API.md
 - [x] 10. CLI
 - [x] 11. Dashboard page
-- [ ] 12. Base station firmware
+- [x] 12. Base station firmware
 - [ ] 13. ESP32 belt firmware
 - [ ] 14. README and final verification

@@ -38,6 +38,14 @@ def run_to_done(client, timeout_s=60):
     raise AssertionError("session did not finish")
 
 
+def test_dashboard_files_are_revalidated_on_every_load(client):
+    for path in ("/", "/static/app.js", "/static/vendor/chart.umd.min.js"):
+        r = client.get(path)
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache", path
+    etag = client.get("/static/app.js").headers["etag"]
+    assert client.get("/static/app.js", headers={"If-None-Match": etag}).status_code == 304
+
+
 def test_people_and_profiles(client):
     assert [p["id"] for p in client.get("/api/people").json()] == ["sim-dad"]
     r = client.post("/api/people", json=PROFILE)

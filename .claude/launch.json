@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "checkin-sim",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "checkin", "serve", "--source", "sim", "--base", "virtual"],
+      "port": 8000
+    }
+  ]
+}

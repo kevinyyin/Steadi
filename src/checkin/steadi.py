@@ -215,31 +215,43 @@ def next_reps(logs, progress=True):
     return EXERCISE_REPS
 
 
+def _low_areas(checkin):
+    """(chair stands at or near the STEADI line, balance flag) in one check-in."""
+    m, cut = checkin["metrics"], checkin["cutoffs"].get("chair_stands")
+    near_line = cut is not None and m.get("chair_stands") is not None and m["chair_stands"] < cut + CHAIR_LOW_MARGIN
+    return near_line, "balance" in {f["id"] for f in checkin["flags"]}
+
+
 def make_plan(person, today=None):
     """Exercise plan leaning on the weakest area (Section 5).
 
-    - Chair stands at or near the STEADI line, or slipping below their baseline two check-ins in a row: 3 sets.
+    Weak areas count only when they show up two check-ins in a row, so one bad day doesn't change the plan:
+    - Chair stands at or near the STEADI line, or slipping below their baseline: 3 sets.
     - A balance flag, or the tandem stance slipping below its baseline: 4 holds.
     - Reps and stance move up once every set or hold hit its target, but only with regular practice
       (PROGRESS_MIN_DAYS exercise days in the last 7); otherwise the plan stays at the same level.
     """
     today = today or date.today()
     logs = person["exercise"]
-    latest = person["checkins"][-1] if person["checkins"] else None
+    checkins = person["checkins"]
+    latest = checkins[-1] if checkins else None
     chair_low = balance_low = False
     why = "no check-in yet: the standard plan"
     if latest:
-        m, cut = latest["metrics"], latest["cutoffs"].get("chair_stands")
-        declining = {d["id"] for d in latest.get("declines", [])}
-        near_line = cut is not None and m.get("chair_stands") is not None and m["chair_stands"] < cut + CHAIR_LOW_MARGIN
-        balance_flag = "balance" in {f["id"] for f in latest["flags"]}
+        declining = {d["id"] for d in latest.get("declines", [])}  # already two check-ins in a row
+        now_chair, now_balance = _low_areas(latest)
+        before_chair, before_balance = _low_areas(checkins[-2]) if len(checkins) > 1 else (False, False)
+        near_line, balance_flag = now_chair and before_chair, now_balance and before_balance
         chair_low = near_line or "chair_stands" in declining
         balance_low = balance_flag or "tandem_s" in declining
+        watching = [name for low, name in [(now_chair and not chair_low, "chair stands"),
+                                           (now_balance and not balance_low, "the tandem stance")] if low]
         reasons = [
-            (near_line, "more sit-to-stands: chair stands are at or near the STEADI line"),
+            (near_line, "more sit-to-stands: chair stands at or near the STEADI line two check-ins in a row"),
             (chair_low and not near_line, "more sit-to-stands: chair stands have slipped below their baseline"),
-            (balance_flag, "more balance holds: the tandem stance was under 10 s"),
+            (balance_flag, "more balance holds: the tandem stance under 10 s two check-ins in a row"),
             (balance_low and not balance_flag, "more balance holds: the tandem stance has slipped below its baseline"),
+            (watching, f"{' and '.join(watching)} low this time: the plan adds more if the next check-in is low too"),
         ]
         why = "; ".join(text for on, text in reasons if on) or "no weak area in the latest check-in: the standard plan"
     days = _days_in_last_week(logs, today)

@@ -209,3 +209,13 @@ def test_late_sensor_data_is_waited_for_not_scored_short(tmp_path, lag):
             "balance": {"stance": "feet_together", "holds": 1, "target_s": 20.0}}
     ex = drive(ctl, ctl.run_session(person["id"], "exercise", plan))
     assert ex["sets"][0]["reps"] == 5 and ex["holds"][0]["hold_s"] == 20.0  # a full hold reaches its target
+
+
+def test_arms_used_outside_the_chair_stand_is_ignored(tmp_path):
+    def mis_tap(ctl, running):
+        if running == "tug":
+            ctl.stop("arms_used")
+
+    ctl, source, base, store, person = make(tmp_path)
+    record = drive(ctl, ctl.run_session(person["id"], "checkin"), on_running=mis_tap)
+    assert record["steps"]["chair_stand"] == {"stands": source.truth["chair_stand"]["stands"], "arms_used": False}

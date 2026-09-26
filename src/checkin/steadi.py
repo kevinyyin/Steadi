@@ -187,7 +187,7 @@ def evaluate(person, metrics, when):
 def next_stance(logs):
     """Supported-balance progression: move up a stance once every hold at the current one hits its target."""
     for log in reversed(logs):
-        holds = log.get("holds") or []
+        holds = [h for h in log.get("holds") or [] if h.get("hold_s") is not None]  # skip holds not measured
         if holds:
             stance = holds[0]["stance"]
             if all(h["hold_s"] >= h["target_s"] for h in holds):
@@ -230,8 +230,9 @@ def adherence(logs, today, weeks=8):
                 "week_start": start.isoformat(),
                 "days": len({lg["date"][:10] for lg in week}),
                 "sessions": len(week),
-                "reps": sum(s["reps"] for lg in week for s in lg["sets"]),
-                "hold_s": round(sum(h["hold_s"] for lg in week for h in lg["holds"]), 1),
+                # a set or hold whose sensor data dropped out has no count: it adds nothing
+                "reps": sum(s.get("reps") or 0 for lg in week for s in lg["sets"]),
+                "hold_s": round(sum(h.get("hold_s") or 0.0 for lg in week for h in lg["holds"]), 1),
             }
         )
     recent = {lg["date"][:10] for lg in logs if (today - date.fromisoformat(lg["date"][:10])).days < 7}

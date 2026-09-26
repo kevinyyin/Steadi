@@ -1,6 +1,7 @@
 import asyncio
+from datetime import date
 
-from checkin import sim
+from checkin import sim, steadi
 from checkin.base import VirtualBase
 from checkin.clock import FakeClock
 from checkin.controller import Controller
@@ -166,3 +167,11 @@ def test_exercise_without_a_plan_uses_the_persons_plan(tmp_path):
     record = drive(ctl, ctl.run_session(person["id"], "exercise"))
     assert len(record["sets"]) == 2 and len(record["holds"]) == 2  # no check-in yet: the standard plan
     assert all(s["reps"] == 8 for s in record["sets"])
+
+
+def test_a_dead_sensor_in_exercise_does_not_break_the_dashboard(tmp_path):
+    ctl, source, base, store, person = make(tmp_path, source_cls=SilentAfterGo)
+    record = drive(ctl, ctl.run_session(person["id"], "exercise"))
+    assert all("error" in r for r in record["sets"] + record["holds"])  # not measured, never 0
+    d = steadi.dashboard(store.get(person["id"]), date.today())  # the next plan and adherence still work
+    assert d["adherence"]["weeks"][-1]["reps"] == 0 and d["plan"]["balance"]["stance"] == "feet_together"

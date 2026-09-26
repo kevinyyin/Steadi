@@ -246,8 +246,8 @@ function renderExercise(plan, adherence, sessions) {
   box.replaceChildren(h("h3", "Recent sessions"));
   const ul = h("ul");
   for (const e of [...sessions].reverse()) {
-    const reps = e.sets.map((s) => s.reps).join(" + ");
-    const holds = e.holds.map((x) => `${x.hold_s} s`).join(", ");
+    const reps = e.sets.map((s) => s.reps ?? "not measured").join(" + ");
+    const holds = e.holds.map((x) => (x.hold_s === undefined ? "not measured" : `${x.hold_s} s`)).join(", ");
     const li = h("li", `${e.date.replace("T", " ")}: sit-to-stands ${reps || "none"}; holds ${holds || "none"} `);
     if (e.simulated) li.append(h("span", "Simulated", { class: "tag" }));
     ul.append(li);

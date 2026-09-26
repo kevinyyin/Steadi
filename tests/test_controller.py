@@ -246,3 +246,19 @@ def test_cancel_while_waiting_for_late_data_saves_nothing(tmp_path):
             "balance": {"stance": "feet_together", "holds": 1, "target_s": 20.0}}
     assert drive(ctl, ctl.run_session(person["id"], "exercise", plan)) is None
     assert store.get(person["id"])["exercise"] == [] and ctl.state["phase"] == "stopped"
+
+
+def test_cancel_after_the_last_step_is_scored_saves_nothing(tmp_path):
+    ctl, source, base, store, person = make(tmp_path)
+    score = ctl._score
+
+    async def score_then_cancel(*args):  # the cancel lands on the last tick before saving
+        result = await score(*args)
+        ctl.stop("cancel")
+        return result
+
+    ctl._score = score_then_cancel
+    plan = {"sit_to_stand": {"sets": 0, "reps": 5},
+            "balance": {"stance": "feet_together", "holds": 1, "target_s": 20.0}}
+    assert drive(ctl, ctl.run_session(person["id"], "exercise", plan)) is None
+    assert store.get(person["id"])["exercise"] == []

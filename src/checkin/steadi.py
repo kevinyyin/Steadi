@@ -210,8 +210,8 @@ def next_reps(logs, progress=True):
         if sets:
             target = sets[0]["target"]
             if progress and all(s["reps"] >= s["target"] for s in sets):
-                return min(target + 1, MAX_REPS)
-            return target
+                target += 1
+            return min(target, MAX_REPS)  # a longer session sent through the API still plans at most 10
     return EXERCISE_REPS
 
 

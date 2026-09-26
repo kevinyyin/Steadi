@@ -206,6 +206,7 @@ class Controller:
         self._emit()
         try:
             results = await (self._checkin() if mode == "checkin" else self._exercise(plan))
+            self._check_cancel()  # a cancel during the last step's final tick still saves nothing
         except Cancelled:
             self._cue("error")
             self._led("off")

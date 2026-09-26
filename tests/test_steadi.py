@@ -199,3 +199,9 @@ def test_missed_sessions_pause_progression():
     plan = plan_for(session(10), session(23), session(24), session(25))  # 3 days: move up
     assert plan["sit_to_stand"]["reps"] == 9 and plan["balance"]["stance"] == "semi_tandem"
     assert "exercise days" not in plan["why"]
+
+
+def test_reps_stay_within_sets_of_5_to_10():
+    # a longer session sent through the API must not push the plan past 10 reps
+    assert plan_for(session(22), session(24), session(25, reps=11, target=12))["sit_to_stand"]["reps"] == 10
+    assert plan_for(session(22), session(24), session(25, reps=12, target=12))["sit_to_stand"]["reps"] == 10

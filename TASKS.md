@@ -8,7 +8,7 @@ Plan: docs/superpowers/plans/2026-09-26-fall-checkin-mvp.md
 - [x] 4. People store and recordings
 - [x] 5. Clock and motion sources
 - [x] 6. Base stations and protocol
-- [ ] 7. Session controller
+- [x] 7. Session controller
 - [ ] 8. Simulated: Dad history
 - [ ] 9. API server and docs/API.md
 - [ ] 10. CLI

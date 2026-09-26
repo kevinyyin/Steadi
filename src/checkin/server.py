@@ -62,7 +62,7 @@ class StopIn(BaseModel):
     reason: Literal["arms_used", "cancel"]
 
 
-def create_app(controller, store, today=date.today):
+def create_app(controller, store, today=date.today, demo=False):
     clients: set[asyncio.Queue] = set()
 
     def broadcast(event):
@@ -70,6 +70,7 @@ def create_app(controller, store, today=date.today):
             q.put_nowait(event)
 
     controller.on_event = broadcast
+    controller.state["demo"] = demo  # the page hides Add a person and Edit profile
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
@@ -81,6 +82,10 @@ def create_app(controller, store, today=date.today):
 
     app = FastAPI(title="Fall-risk check-in", lifespan=lifespan)
     app.mount("/static", Static(directory=STATIC), name="static")
+
+    def not_in_demo():
+        if demo:
+            raise HTTPException(403, "this is a demo: people can't be added or changed")
 
     def person_or_404(pid):
         try:
@@ -102,11 +107,13 @@ def create_app(controller, store, today=date.today):
 
     @app.post("/api/people", status_code=201)
     def create_person(body: ProfileIn):
+        not_in_demo()
         profile = body.model_dump(exclude={"name"})
         return store.create(body.name, profile)
 
     @app.put("/api/people/{pid}")
     def update_person(pid: str, body: ProfileIn):
+        not_in_demo()
         person = person_or_404(pid)
         if person["simulated"]:
             raise HTTPException(403, "the simulated person is read-only; reseed with `checkin seed`")

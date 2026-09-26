@@ -95,3 +95,4 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] scripts/make_images.py: Grok Imagine via urllib, shared style prompt, optional names, extension from the image bytes
 - [x] Balance stances use a feet-from-above prompt; sit-to-stand is halfway up, arms crossed
 - [x] Check-in: each step's local picture beside the instruction, plus the exercise pictures
+- [x] Family summary calls xAI Grok (`XAI_API_KEY`, `CHECKIN_GROK_MODEL`); same checks and template fallback

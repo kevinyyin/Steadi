@@ -477,6 +477,7 @@ function renderDone(s) {
 function renderState(s) {
   const was = state && state.phase;
   state = s;
+  $("edit-profile").hidden = $("add-person").hidden = !!s.demo; // the public demo has one ready-made Guest
   const running = s.phase === "running";
   document.body.dataset.running = running;
   let justEnded = false;

@@ -1,9 +1,9 @@
 """Summaries of one person's dashboard: an exact one for the doctor, a plain-language one for the family.
 
-The doctor summary is built only from the recorded numbers. The family summary is written by an OpenAI
+The doctor summary is built only from the recorded numbers. The family summary is written by a Grok
 model from that same text (no name sent), and is used only if it passes the checks below; otherwise, or
-with no key or no internet, the family gets a fixed-template summary. Settings: OPENAI_API_KEY,
-CHECKIN_OPENAI_MODEL.
+with no key or no internet, the family gets a fixed-template summary. Settings: XAI_API_KEY,
+CHECKIN_GROK_MODEL.
 """
 
 import json
@@ -16,8 +16,8 @@ from datetime import datetime
 from . import steadi
 
 log = logging.getLogger(__name__)
-OPENAI_URL = "https://api.openai.com/v1/chat/completions"
-DEFAULT_MODEL = "gpt-4o-mini"
+GROK_URL = "https://api.x.ai/v1/chat/completions"
+DEFAULT_MODEL = "grok-4.3"
 TIMEOUT_S = 20
 NUMBER = re.compile(r"\d+(?:\.\d+)?")
 # Claims we never make (CLAUDE.md): diagnosis, predicting a fall, guaranteed prevention, medical advice.
@@ -198,24 +198,24 @@ def check(text, facts):
     return f"numbers not in the data: {', '.join(invented)}" if invented else None
 
 
-def openai_ask(system, user):
+def grok_ask(system, user):
     """The model's reply, or None with no API key. Raises on network or API errors."""
-    key = os.environ.get("OPENAI_API_KEY")
+    key = os.environ.get("XAI_API_KEY")
     if not key:
         return None
     body = {
-        "model": os.environ.get("CHECKIN_OPENAI_MODEL", DEFAULT_MODEL),
+        "model": os.environ.get("CHECKIN_GROK_MODEL", DEFAULT_MODEL),
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         "temperature": 0.2,
     }
     req = urllib.request.Request(
-        OPENAI_URL, json.dumps(body).encode(), {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+        GROK_URL, json.dumps(body).encode(), {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     )
     with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
         return json.loads(r.read())["choices"][0]["message"]["content"].strip()
 
 
-def summaries(dash, ask=openai_ask):
+def summaries(dash, ask=grok_ask):
     """{"doctor", "family", "family_by": "ai" | "template", "simulated"}."""
     facts = doctor(dash)
     family, by = template(dash), "template"

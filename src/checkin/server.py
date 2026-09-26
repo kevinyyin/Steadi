@@ -15,6 +15,16 @@ from . import steadi, summary
 from .controller import Busy
 
 STATIC = Path(__file__).parent / "static"
+# Revalidate the page and its files on every load (ETag keeps it cheap): a cached old app.js under a new
+# index.html leaves the page broken until someone hard-refreshes the tablet.
+NO_CACHE = {"Cache-Control": "no-cache"}
+
+
+class Static(StaticFiles):
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers.update(NO_CACHE)
+        return response
 
 
 class ProfileIn(BaseModel):
@@ -70,7 +80,7 @@ def create_app(controller, store, today=date.today):
         controller.base.close()
 
     app = FastAPI(title="Fall-risk check-in", lifespan=lifespan)
-    app.mount("/static", StaticFiles(directory=STATIC), name="static")
+    app.mount("/static", Static(directory=STATIC), name="static")
 
     def person_or_404(pid):
         try:
@@ -80,7 +90,7 @@ def create_app(controller, store, today=date.today):
 
     @app.get("/")
     def index():
-        return FileResponse(STATIC / "index.html")
+        return FileResponse(STATIC / "index.html", headers=NO_CACHE)
 
     @app.get("/api/state")
     def state():

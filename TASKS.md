@@ -33,5 +33,5 @@ Plan: docs/superpowers/plans/2026-09-26-fall-checkin-mvp.md
 - [x] Edit profile link (auto-open when age/sex missing before check-in); quick exercise inside Start exercise
 - [x] Test 3 views x tablet/phone x Guest empty, live check-in, Simulated: Dad; pytest, ruff; screenshots
 - [x] Detector clean
-- [ ] Dashboard files sent with Cache-Control: no-cache (stale app.js breaks the new page)
+- [x] Dashboard files sent with Cache-Control: no-cache (stale app.js breaks the new page)
 - [ ] Later: design finish review and DESIGN.md; test on the Dell tablet with the real belt and base station

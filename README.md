@@ -30,7 +30,7 @@ Every device sits behind the same interface, so mix and match:
 | `csv:data/recordings/FILE.csv` | either | Replay a real recorded session through the live dashboard |
 | `sim` | `serial` | Test the Arduino on its own |
 
-Settings are flags or environment variables, never code: `--udp-port` / `CHECKIN_UDP_PORT` (default 4210), `--serial-port` / `CHECKIN_SERIAL_PORT`, `--port` (default 8000), `--data` (default `data/`). Optional AI family summary: `OPENAI_API_KEY` (and `CHECKIN_OPENAI_MODEL`, default `gpt-4o-mini`); without it the summary uses fixed wording and nothing leaves the laptop.
+Settings are flags or environment variables, never code: `--udp-port` / `CHECKIN_UDP_PORT` (default 4210), `--serial-port` / `CHECKIN_SERIAL_PORT`, `--port` (default 8000), `--data` (default `data/`). Optional AI family summary: `XAI_API_KEY` (and `CHECKIN_GROK_MODEL`, default `grok-4.3`); without it the summary uses fixed wording and nothing leaves the laptop.
 
 ### 1. Simulator + on-screen base station
 
@@ -97,6 +97,10 @@ Or play it back through the live dashboard, one step per button press:
 ```bash
 uv run checkin serve --source csv:data/recordings/20260926-100516-checkin.csv --base virtual
 ```
+
+### 6. Public demo (Render)
+
+A web service on render.com (not Vercel: the app needs a long-running process and a WebSocket). Build command `uv sync --frozen`; start command `uv run checkin serve --source sim --base virtual --demo --port $PORT`. `--demo` makes Guest ready to start (age 72, female) and turns off adding or editing people. Set no environment variables: without `XAI_API_KEY` the summary uses fixed wording and the site makes no paid calls. Data resets whenever the service restarts.
 
 ## Running a check-in
 

@@ -1,7 +1,7 @@
 # Check-in API
 
 Everything the dashboard shows comes from here, so the UI can be rebuilt without touching the backend.
-Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside call is the optional AI family summary (below), which sends the doctor summary text, with no name, to OpenAI.
+Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside call is the optional AI family summary (below), which sends the doctor summary text, with no name, to xAI Grok.
 
 Units: seconds (`_s`), percent (`_pct`), sway in m/s² (RMS horizontal acceleration at the lower back).
 `null` means "not measured" (for example the belt dropped out); it never means zero.
@@ -45,6 +45,7 @@ The session controller's current state. The same object arrives over the WebSock
 | `led` | `off`, `blue` (session in progress), `green`, `amber`, `red` (level of the check-in just saved) |
 | `base` | `virtual` (the page plays the tones) or `serial` (the Arduino does) |
 | `source.kind` | `sim`, `csv`, `udp`, `phyphox` |
+| `demo` | `true` when started with `checkin serve --demo` (the public demo): hide Add a person and Edit profile; `POST`/`PUT /api/people` return `403` |
 
 Step ids: check-in `tug`, `dual_tug`, `chair_stand`, `balance_feet_together`, `balance_semi_tandem`, `balance_tandem`;
 exercise `sit_to_stand#1`, `sit_to_stand#2`, …, `hold_<stance>#1`, ….
@@ -147,7 +148,7 @@ Two text summaries of the dashboard, for a "summary" panel and for printing befo
 ```
 
 - `doctor`: built only from the recorded numbers, never by AI: profile, key questions, latest results against the STEADI cutoffs, change from baseline, first/worst/latest per metric, exercise adherence and plan. Plain text with line breaks (show it in `<pre>` or with `white-space: pre-wrap`). It has no name in it.
-- `family`: 3–5 plain sentences. `family_by` is `"ai"` when an OpenAI model wrote it from the `doctor` text, or `"template"` (fixed wording) when there's no `OPENAI_API_KEY`, no internet, or the AI reply failed a check: a number that isn't in the data, a forbidden claim (diagnosis, predicting a fall, guaranteed prevention, medication), or clinical words the family never sees (STEADI, Timed Up and Go, TUG, tandem, sway, baseline, dual-task). The fixed wording names flags the way the Home cards do ("Leg strength: 10 stand-ups from a chair in 30 seconds, fewer than average for men 75–79."); a check-in raised only by a sustained decline "showed a change from usual" rather than "flags increased fall risk", since the decline rule is ours, not STEADI's. Label the AI text as AI-written.
+- `family`: 3–5 plain sentences. `family_by` is `"ai"` when a Grok model wrote it from the `doctor` text, or `"template"` (fixed wording) when there's no `XAI_API_KEY`, no internet, or the AI reply failed a check: a number that isn't in the data, a forbidden claim (diagnosis, predicting a fall, guaranteed prevention, medication), or clinical words the family never sees (STEADI, Timed Up and Go, TUG, tandem, sway, baseline, dual-task). The fixed wording names flags the way the Home cards do ("Leg strength: 10 stand-ups from a chair in 30 seconds, fewer than average for men 75–79."); a check-in raised only by a sustained decline "showed a change from usual" rather than "flags increased fall risk", since the decline rule is ours, not STEADI's. Label the AI text as AI-written.
 - With an AI key set, the call can take a few seconds: fetch it when the user asks, not with every dashboard load.
 - `simulated`: the text already starts with "Simulated data." / "SIMULATED DATA"; still show the usual Simulated tag.
 

@@ -130,8 +130,25 @@ def test_index_page_is_served(client):
 
 
 def test_summary_works_with_no_ai_key(client, monkeypatch):
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
     s = client.get("/api/people/sim-dad/summary").json()
     assert s["family_by"] == "template" and s["simulated"]
     assert s["doctor"].startswith("Fall-risk screening summary")
     assert client.get("/api/people/nobody/summary").status_code == 404
+
+
+def test_demo_blocks_adding_and_editing_people(tmp_path):
+    clock = FakeClock()
+    store = Store(tmp_path)
+    seed_dad(store, TODAY)
+    app = create_app(Controller(SimSource(clock, seed=1), VirtualBase(), store, clock), store, today=lambda: TODAY,
+                     demo=True)
+    with TestClient(app) as c:
+        assert c.get("/api/state").json()["demo"] is True
+        assert c.post("/api/people", json=PROFILE).status_code == 403
+        assert c.put("/api/people/sim-dad", json=PROFILE).status_code == 403
+        assert c.get("/api/people/sim-dad/dashboard").status_code == 200
+
+
+def test_state_says_not_demo_by_default(client):
+    assert client.get("/api/state").json()["demo"] is False

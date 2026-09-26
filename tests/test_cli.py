@@ -35,3 +35,19 @@ def test_seed_writes_the_simulated_history(tmp_path, capsys):
     main(["seed", "--data", str(tmp_path)])
     doc = json.loads((tmp_path / "people" / "sim-dad.json").read_text())
     assert doc["simulated"] and len(doc["checkins"]) == 8
+
+
+def test_demo_serve_makes_guest_ready_to_start(tmp_path, monkeypatch):
+    import uvicorn
+
+    from checkin.store import Store
+
+    apps = []
+    monkeypatch.setattr(uvicorn, "run", lambda app, **kw: apps.append(app))
+    Store(tmp_path).create("Guest", {"age": None, "sex": None}, pid="guest")  # left blank by an earlier run
+    main(["serve", "--demo", "--data", str(tmp_path)])
+    assert Store(tmp_path).get("guest")["profile"] == {"age": 72, "sex": "female", "fallen": False,
+                                                       "unsteady": False, "worried": False}
+    main(["serve", "--data", str(tmp_path / "local")])  # without --demo, Guest starts blank as before
+    assert Store(tmp_path / "local").get("guest")["profile"]["age"] is None
+    assert len(apps) == 2

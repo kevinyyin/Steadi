@@ -130,6 +130,6 @@ def test_no_checkins_never_calls_the_ai(tmp_path):
     assert not out["simulated"]
 
 
-def test_openai_ask_without_a_key_makes_no_call(monkeypatch):
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    assert summary.openai_ask("system", "user") is None
+def test_grok_ask_without_a_key_makes_no_call(monkeypatch):
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
+    assert summary.grok_ask("system", "user") is None

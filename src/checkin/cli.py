@@ -8,6 +8,8 @@ from datetime import date
 from pathlib import Path
 
 DATA = Path(os.environ.get("CHECKIN_DATA", "data"))
+# Public demo (--demo): Guest can start a check-in right away, and nobody can add or edit people.
+DEMO_PROFILE = {"age": 72, "sex": "female", "fallen": False, "unsteady": False, "worried": False}
 
 
 def replay(path, age=None, sex=None):
@@ -50,13 +52,18 @@ def serve(args):
     ids = {p["id"] for p in store.people()}
     if DAD_ID not in ids:
         seed_dad(store, date.today())
+    guest = DEMO_PROFILE if args.demo else {"age": None, "sex": None, "fallen": False, "unsteady": False,
+                                             "worried": False}
     if "guest" not in ids:
-        store.create("Guest", {"age": None, "sex": None, "fallen": False, "unsteady": False, "worried": False},
-                     pid="guest")
+        store.create("Guest", dict(guest), pid="guest")
+    elif args.demo:  # the public demo always starts ready to go, whatever a visitor did before a restart
+        person = store.get("guest")
+        person["profile"] = dict(guest)
+        store.save(person)
     clock = Clock()
     source = open_source(args.source, clock, udp_port=args.udp_port)
     base = open_base(args.base, args.serial_port)
-    app = create_app(Controller(source, base, store, clock), store)
+    app = create_app(Controller(source, base, store, clock), store, demo=args.demo)
     print(f"Dashboard: http://localhost:{args.port}  (source={args.source}, base={args.base})")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 
@@ -74,6 +81,8 @@ def main(argv=None):
     s.add_argument("--host", default="0.0.0.0", help="0.0.0.0 lets the tablet on the same network connect")
     s.add_argument("--port", type=int, default=8000)
     s.add_argument("--data", type=Path, default=DATA)
+    s.add_argument("--demo", action="store_true",
+                   help="public demo: Guest is ready to start (age 72, female); adding or editing people is off")
     r = sub.add_parser("replay", help="score a recording made by `checkin serve`")
     r.add_argument("file", type=Path)
     r.add_argument("--age", type=int)

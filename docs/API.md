@@ -113,6 +113,7 @@ Everything the family view shows for one person.
   "trends": {
     "dates": ["2026-08-08", "..."],
     "levels": ["green", "..."],
+    "simulated": [true, "..."],
     "series": {"tug_s": [10.8, "..."], "dual_task_cost_pct": [16.7, "..."], "chair_stands": [13, "..."],
                "tandem_s": [10.0, "..."]},
     "cutoffs": {"tug_s": 12.0, "chair_stands": 11, "tandem_s": 10.0}
@@ -120,12 +121,13 @@ Everything the family view shows for one person.
   "plan": {"sit_to_stand": {"sets": 3, "reps": 8}, "balance": {"stance": "tandem", "holds": 2, "target_s": 20.0},
            "why": "more sit-to-stands: chair stands are at or near the STEADI line"},
   "adherence": {"target_days_per_week": 5, "last_7_days": 5,
-                "weeks": [{"week_start": "2026-09-21", "days": 4, "sessions": 4, "reps": 96, "hold_s": 96.0}]},
+                "weeks": [{"week_start": "2026-09-21", "days": 4, "sessions": 4, "reps": 96, "hold_s": 96.0,
+                           "simulated": true}]},
   "exercise": [ "... the last 10 exercise logs, below" ]
 }
 ```
 
-`trends.cutoffs` are STEADI lines for charts: TUG flags at 12 s or more; chair stands flag below the number; tandem flags below 10 s. `adherence.weeks` covers the last 8 weeks (Monday start), oldest first.
+`trends.cutoffs` are STEADI lines for charts: TUG flags at 12 s or more; chair stands flag below the number; tandem flags below 10 s. `adherence.weeks` covers the last 8 weeks (Monday start), oldest first. `trends.simulated` (per check-in) and `adherence.weeks[].simulated` (any simulated session that week) say which chart points to label "Simulated".
 
 ### Check-in record
 

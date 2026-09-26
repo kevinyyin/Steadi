@@ -134,8 +134,8 @@ def test_adherence_counts_exercise_days_per_week():
             for d in (21, 21, 22, 24, 26, 14)]
     a = steadi.adherence(logs, today, weeks=2)
     assert a["weeks"] == [
-        {"week_start": "2026-09-14", "days": 1, "sessions": 1, "reps": 8, "hold_s": 20.0},
-        {"week_start": "2026-09-21", "days": 4, "sessions": 5, "reps": 40, "hold_s": 100.0},
+        {"week_start": "2026-09-14", "days": 1, "sessions": 1, "reps": 8, "hold_s": 20.0, "simulated": False},
+        {"week_start": "2026-09-21", "days": 4, "sessions": 5, "reps": 40, "hold_s": 100.0, "simulated": False},
     ]
     assert a["last_7_days"] == 4 and a["target_days_per_week"] == 5
 

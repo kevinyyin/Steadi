@@ -99,6 +99,9 @@ def test_simulated_dad_dashboard(client):
     d = client.get("/api/people/sim-dad/dashboard").json()
     assert d["person"]["simulated"] and d["level"] == "green"
     assert d["trends"]["levels"].count("amber") == 2 and d["adherence"]["last_7_days"] == 5
+    # every chart point from simulated data can be labelled "Simulated"
+    assert d["trends"]["simulated"] == [True] * 8
+    assert all(w["simulated"] == (w["sessions"] > 0) for w in d["adherence"]["weeks"])
 
 
 def test_websocket_sends_state_then_events(client):

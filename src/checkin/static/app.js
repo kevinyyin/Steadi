@@ -25,6 +25,15 @@ function h(tag, text, attrs = {}) {
   return el;
 }
 
+function simTag() {
+  return h("span", "Simulated", { class: "tag" });
+}
+
+// Chart x labels: a simulated point gets a second line reading "Simulated".
+function simLabels(labels, simulated) {
+  return labels.map((label, i) => (simulated[i] ? [label, "Simulated"] : label));
+}
+
 async function api(method, path, body) {
   const r = await fetch(path, {
     method,
@@ -86,6 +95,7 @@ function renderState(s) {
     live.elapsed_s !== undefined ? `${live.elapsed_s} s` : "",
     live.reps !== undefined ? `${live.reps}${live.target ? ` of ${live.target}` : ""} counted` : "",
   ].filter(Boolean).join(" · ");
+  $("steps-tag").replaceChildren(src.simulated && s.steps.length ? simTag() : "");
   const list = $("steps");
   list.replaceChildren();
   for (const step of s.steps) {
@@ -94,7 +104,7 @@ function renderState(s) {
   const busy = s.phase === "running";
   for (const id of ["start-checkin", "start-exercise", "start-quick"]) $(id).disabled = busy;
   $("cancel").disabled = !busy;
-  $("arms-used").disabled = !s.steps.some((x) => x.id === "chair_stand" && x.status === "running");
+  $("arms-used").disabled = !(busy && s.steps.some((x) => x.id === "chair_stand" && x.status === "running"));
 }
 
 function connect() {
@@ -148,11 +158,12 @@ function renderAlert(alert, latest) {
     box.append(h("p", "No check-in yet."));
     return;
   }
-  if (!alert) {
-    box.append(h("p", "No flags in the latest check-in. Keep up the exercises most days."));
-    return;
-  }
-  box.append(h("p", `${alert.level.toUpperCase()}: ${alert.title}`, { class: "flag" }));
+  const title = alert
+    ? h("p", `${alert.level.toUpperCase()}: ${alert.title} `, { class: "flag" })
+    : h("p", "No flags in the latest check-in. Keep up the exercises most days. ");
+  if (latest.simulated) title.append(simTag());
+  box.append(title);
+  if (!alert) return;
   const ul = h("ul");
   for (const item of alert.items) ul.append(h("li", item));
   box.append(ul, h("p", alert.advice), h("p", alert.note));
@@ -217,10 +228,11 @@ function lineChart(id, label, dates, values, cutoff, cutoffLabel) {
 function renderTrends(t) {
   const s = t.series;
   const c = t.cutoffs;
-  lineChart("chart-tug", "Timed Up and Go (s)", t.dates, s.tug_s, c.tug_s, "STEADI cutoff (12 s)");
-  lineChart("chart-chair", "Chair stands in 30 s", t.dates, s.chair_stands, c.chair_stands, "STEADI below-average line");
-  lineChart("chart-tandem", "Tandem stance (s)", t.dates, s.tandem_s, c.tandem_s, "STEADI cutoff (10 s)");
-  lineChart("chart-cost", "Dual-task cost (%)", t.dates, s.dual_task_cost_pct, null, "");
+  const x = simLabels(t.dates, t.simulated);
+  lineChart("chart-tug", "Timed Up and Go (s)", x, s.tug_s, c.tug_s, "STEADI cutoff (12 s)");
+  lineChart("chart-chair", "Chair stands in 30 s", x, s.chair_stands, c.chair_stands, "STEADI below-average line");
+  lineChart("chart-tandem", "Tandem stance (s)", x, s.tandem_s, c.tandem_s, "STEADI cutoff (10 s)");
+  lineChart("chart-cost", "Dual-task cost (%)", x, s.dual_task_cost_pct, null, "");
 }
 
 function renderExercise(plan, adherence, sessions) {
@@ -234,7 +246,7 @@ function renderExercise(plan, adherence, sessions) {
   charts.adherence = new Chart($("chart-adherence"), {
     type: "bar",
     data: {
-      labels: weeks.map((w) => w.week_start),
+      labels: simLabels(weeks.map((w) => w.week_start), weeks.map((w) => w.simulated)),
       datasets: [
         { type: "bar", label: "Exercise days per week", data: weeks.map((w) => w.days) },
         { type: "line", label: "Target", data: weeks.map(() => adherence.target_days_per_week), pointRadius: 0,

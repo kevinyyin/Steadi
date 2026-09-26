@@ -41,7 +41,7 @@ The session controller's current state. The same object arrives over the WebSock
 | `mode` | `idle`, `checkin`, `exercise` |
 | `phase` | `idle`, `running`, `done` (saved; `last_record` holds the record), `stopped` (cancelled or failed; nothing saved) |
 | `steps[].status` | `pending`, `waiting` (press the button), `running` (timing), `done`, `failed` (not measured), `skipped` (balance stopped at an earlier stance) |
-| `live` | `elapsed_s` since "Go"; `reps` counted so far (chair stand, sit-to-stands); `target` reps (exercise) |
+| `live` | `elapsed_s` since "Go"; `reps` counted so far (chair stand, sit-to-stands); `target` reps (exercise); `limit_s` (chair stand, 30) and `target_s` (balance and exercise holds), so the page can show time left |
 | `led` | `off`, `blue` (session in progress), `green`, `amber`, `red` (level of the check-in just saved) |
 | `base` | `virtual` (the page plays the tones) or `serial` (the Arduino does) |
 | `source.kind` | `sim`, `csv`, `udp`, `phyphox` |
@@ -75,9 +75,9 @@ Sends the state on connect, then events:
 |---|---|---|
 | `POST /api/session` | `{"person_id": "guest", "mode": "checkin"}` | `202`; `409` if a session is running; `404` unknown person; `400` check-in without age and sex |
 | `POST /api/session` | `{"person_id": "guest", "mode": "exercise", "plan": {...}}` | `plan` is optional (default: the person's plan, below); `422` if out of range |
-| `POST /api/button` | none | The on-screen button: starts the waiting step; during a TUG it stops the clock (stopwatch fallback); during a balance stance it marks the stance as broken. A press within 1 s of the last one taken is ignored (double-tap) |
+| `POST /api/button` | none | The on-screen button: starts the waiting step; during a TUG it stops the clock (stopwatch fallback); during a balance stance it marks the stance as broken; during a sit-to-stand round it ends the round. A press within 1 s of the last one taken is ignored (double-tap), and so is one within 3 s of "Go" (a nervous "did it start?" press must not save a 2 s walk or a broken stance) |
 | `POST /api/stop` | `{"reason": "arms_used"}` | While the chair stand is running: stop and record 0 stands (STEADI). Ignored at any other time |
-| `POST /api/stop` | `{"reason": "cancel"}` | End the session; nothing is saved |
+| `POST /api/stop` | `{"reason": "cancel"}` | End the session; nothing is saved (the `stop` cue plays, not `error`: it's a safety stop, not a failure) |
 
 Exercise `plan` limits: `sit_to_stand.sets` 0–6, `reps` 1–20; `balance.stance` one of `feet_together`, `semi_tandem`, `tandem`; `holds` 0–6; `target_s` above 0, at most 60.
 Quick demo (5 sit-to-stands, no holds):
@@ -133,7 +133,7 @@ Everything the family view shows for one person.
 - `balance.holds`: 4 with a balance flag, or a tandem stance slipping below its baseline, two check-ins in a row; otherwise 2.
 - `sit_to_stand.reps` (8 to start, 10 at most) and `balance.stance` move up one step once every set or hold in the latest session hit its target, but only after 3 or more exercise days in the last 7. Otherwise they stay the same, and `why` says so when they would have moved up. Sessions shorter than 8 reps (the quick demo) don't count.
 
-`trends.cutoffs` are STEADI lines for charts: TUG flags at 12 s or more; chair stands flag below the number; tandem flags below 10 s. `adherence.weeks` covers the last 8 weeks (Monday start), oldest first. `trends.simulated` (per check-in) and `adherence.weeks[].simulated` (any simulated session that week) say which chart points to label "Simulated".
+`trends.cutoffs` are STEADI lines for charts: TUG flags at 12 s or more; chair stands flag below the number (`chair_label` names the age/sex group); tandem flags below 10 s. Per check-in: `trends.levels`, `trends.flags` (flag ids), `trends.declines` (metric ids), `trends.partial` (a core test wasn't measured, so the check-in isn't "clear" even when green), `trends.baseline` (the rolling baseline each metric was compared with: mean of up to 4 earlier check-ins; `null` until there are 2), and `trends.stances_held` (0–3 balance stances held for 10 s in order, `null` if not measured). A TUG not finished within 60 s while the belt kept sending is `metrics.tug_timed_out: true` and flagged; a belt that went quiet is a dropout (`error`), never flagged. `adherence.weeks` covers the last 8 weeks (Monday start), oldest first. `trends.simulated` (per check-in) and `adherence.weeks[].simulated` (any simulated session that week) say which chart points to label "Simulated".
 
 ### `GET /api/people/{id}/summary`
 
@@ -141,13 +141,13 @@ Two text summaries of the dashboard, for a "summary" panel and for printing befo
 
 ```json
 {"doctor": "Fall-risk screening summary: ...\n- Timed Up and Go: 10.8 s (flags at 12 s or more; ...)\n...",
- "family": "Simulated data. The check-in on 2026-09-26 raised no flags. ...",
+ "family": "Simulated data. The check-in on Saturday, September 26 raised no flags. ...",
  "family_by": "ai",
  "simulated": true}
 ```
 
 - `doctor`: built only from the recorded numbers, never by AI: profile, key questions, latest results against the STEADI cutoffs, change from baseline, first/worst/latest per metric, exercise adherence and plan. Plain text with line breaks (show it in `<pre>` or with `white-space: pre-wrap`). It has no name in it.
-- `family`: 3–5 plain sentences. `family_by` is `"ai"` when an OpenAI model wrote it from the `doctor` text, or `"template"` (fixed wording) when there's no `OPENAI_API_KEY`, no internet, or the AI reply failed a check: a number that isn't in the data, or a forbidden claim (diagnosis, predicting a fall, guaranteed prevention, medication). Label the AI text as AI-written.
+- `family`: 3–5 plain sentences. `family_by` is `"ai"` when an OpenAI model wrote it from the `doctor` text, or `"template"` (fixed wording) when there's no `OPENAI_API_KEY`, no internet, or the AI reply failed a check: a number that isn't in the data, a forbidden claim (diagnosis, predicting a fall, guaranteed prevention, medication), or clinical words the family never sees (STEADI, Timed Up and Go, TUG, tandem, sway, baseline, dual-task). The fixed wording names flags the way the Home cards do ("Leg strength: 10 stand-ups from a chair in 30 seconds, fewer than average for men 75–79."); a check-in raised only by a sustained decline "showed a change from usual" rather than "flags increased fall risk", since the decline rule is ours, not STEADI's. Label the AI text as AI-written.
 - With an AI key set, the call can take a few seconds: fetch it when the user asks, not with every dashboard load.
 - `simulated`: the text already starts with "Simulated data." / "SIMULATED DATA"; still show the usual Simulated tag.
 

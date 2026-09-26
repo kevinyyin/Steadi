@@ -40,8 +40,18 @@ def test_flagged_checkin_reaches_both_summaries(dad):
     dad["checkins"] = dad["checkins"][:4]  # ends at the chair-stand dip
     d = dash(dad)
     assert "flags increased fall risk: 10 chair stands" in summary.doctor(d)
-    assert "flags increased fall risk" in summary.template(d)
+    family = summary.template(d)
+    assert "flags increased fall risk. Leg strength: 10 stand-ups from a chair in 30 seconds" in family
+    assert not JARGON.search(family)
     assert d["latest"]["alert"]["note"] == steadi.NOTE  # the doctor-facing alert keeps the STEADI note
+
+
+def test_a_decline_alone_says_what_changed_not_flags(dad):
+    d = dash(dad)
+    d["latest"].update(flags=[], declines=[{"id": "chair_stands"}], alert={"advice": "Mention it to the doctor."})
+    family = summary.template(d)
+    assert "showed a change from usual. Leg strength has been worse than usual two check-ins in a row." in family
+    assert "flags increased fall risk" not in family
 
 
 def test_family_template_is_plain_words(dad):
@@ -51,10 +61,35 @@ def test_family_template_is_plain_words(dad):
     assert not JARGON.search(text)
 
 
+def test_family_items_use_the_home_cards_words():
+    latest = {
+        "metrics": {"tug_s": 12.4, "chair_stands": 9, "tandem_s": 8.2},
+        "cutoffs": {"tug_s": 12.0, "tandem_s": 10.0, "chair_label": "men 90–94 (the oldest STEADI group)"},
+        "key_questions": {"fallen": True, "unsteady": False, "worried": True},
+        "flags": [{"id": i} for i in ("key_questions", "tug", "chair_stand", "balance")],
+        "declines": [{"id": "dual_task_cost_pct"}],
+    }
+    assert summary.family_items(latest) == [
+        "Answered yes: has had a fall in the past year; worries about falling.",
+        "Standing up and walking took 12.4 seconds; 12 seconds or longer is flagged.",
+        "Leg strength: 9 stand-ups from a chair in 30 seconds, fewer than average for men 90–94.",
+        "Balance: held one foot right in front of the other for 8.2 seconds; under 10 seconds is flagged.",
+        "Walking while naming animals has been worse than usual two check-ins in a row.",
+    ]
+
+
+def test_a_balance_flag_names_the_stance_that_broke():
+    latest = {"metrics": {"feet_together_s": 10.0, "semi_tandem_s": 4.2, "tandem_s": 0.0},
+              "cutoffs": {"tandem_s": 10.0}, "flags": [{"id": "balance"}], "key_questions": {}}
+    assert summary.family_items(latest) == [
+        "Balance: held one foot a little ahead of the other for 4.2 seconds (the goal is 10), "
+        "so the hardest position wasn't tried."]
+
+
 def test_ai_summary_used_when_it_passes_the_checks(dad):
-    out = summary.summaries(dash(dad), ask=lambda s, u: "Timed Up and Go took 10.8 s, better than baseline.")
+    out = summary.summaries(dash(dad), ask=lambda s, u: "Standing up and walking took 10.8 seconds, as usual.")
     assert out["family_by"] == "ai"
-    assert out["family"] == "Simulated data. Timed Up and Go took 10.8 s, better than baseline."
+    assert out["family"] == "Simulated data. Standing up and walking took 10.8 seconds, as usual."
 
 
 @pytest.mark.parametrize(
@@ -64,6 +99,7 @@ def test_ai_summary_used_when_it_passes_the_checks(dad):
         "These results predict a fall soon.",
         "He will likely fall without help.",
         "Keep going: exercise guarantees fewer falls.",
+        "Timed Up and Go took 10.8 s, better than baseline.",  # clinical words the family never sees
         "",
         None,  # no API key
     ],

@@ -17,34 +17,35 @@ log = logging.getLogger(__name__)
 TICK_S = 0.05  # read the sensor and the button this often
 CHECK_S = 0.25  # re-run detection on the growing window this often
 PRE_S = 1.0  # seconds before "Go" kept in each step's window
-TUG_TIMEOUT_S = 60.0
+TUG_TIMEOUT_S = steadi.TUG_TIMEOUT_S
 BALANCE_S = 10.0
 SET_IDLE_S = 8.0  # a sit-to-stand set ends after this long without a new rep
 SET_MAX_S = 120.0
 PRESS_GUARD_S = 1.0  # a press this soon after the last one taken is a double-tap: ignored
+# A press this soon after "Go" is a nervous "did it start?" press, not the helper stopping the clock or
+# marking a break: ignored, so it can't save a 2 s walk or a "broken" stance that flags balance.
+GO_GUARD_S = 3.0
 SETTLE_S = 1.0  # wait up to this long for late samples (Wi-Fi batching, phone polling) before scoring a step
 
 CHECKIN_STEPS = [
     ("tug", "Timed Up and Go",
      "Sit in the arm chair with your back against it. On 'Go', stand up, walk to the line at your normal pace, "
-     "turn, walk back, and sit down."),
+     "turn, walk back, and sit down. Take your time sitting down."),
     ("dual_tug", "Timed Up and Go while naming animals",
-     "Same walk again, but name animals out loud the whole time."),
+     "Walk to the line and back again at your normal pace, naming animals out loud the whole time. "
+     "Take your time sitting down."),
     ("chair_stand", "30-second chair stand",
      "Sit in the middle of the armless chair, arms crossed on your chest. On 'Go', stand up fully and sit back "
      "down, again and again, for 30 seconds."),
     ("balance_feet_together", "Balance: feet together",
-     "Stand beside the counter with your feet side by side, a hand hovering over the counter. Hold for 10 seconds."),
+     "Stand beside the counter with your feet side by side, a hand just above the counter. Hold for 10 seconds."),
     ("balance_semi_tandem", "Balance: semi-tandem",
-     "Move one foot forward so its instep touches the big toe of the other foot. Hold for 10 seconds."),
+     "Put one foot about half a foot ahead of the other, sides touching. Keep a hand just above the counter. "
+     "Hold for 10 seconds."),
     ("balance_tandem", "Balance: tandem",
-     "Put one foot directly in front of the other, heel touching toe. Hold for 10 seconds."),
+     "Put one foot right in front of the other, heel touching toe. Keep a hand just above the counter. "
+     "Hold for 10 seconds."),
 ]
-HOLD_FEET = {  # exercise hold prompts: plain words, no stance names
-    "feet_together": "feet together",
-    "semi_tandem": "one foot a little ahead of the other",
-    "tandem": "one foot right in front of the other",
-}
 
 
 class Busy(Exception):
@@ -187,6 +188,10 @@ class Controller:
         self._last_press = now
         return True
 
+    def _take_stop_press(self, t_go):
+        """A press meant to end a running step: taken, but ignored within GO_GUARD_S of "Go"."""
+        return self._take_press() and self.clock.now() - t_go >= GO_GUARD_S
+
     def _check_cancel(self):
         if self._stop == "cancel":
             raise Cancelled()
@@ -213,7 +218,7 @@ class Controller:
             results = await (self._checkin() if mode == "checkin" else self._exercise(plan))
             self._check_cancel()  # a cancel during the last step's final tick still saves nothing
         except Cancelled:
-            self._cue("error")
+            self._cue("stop")  # a safety stop, not a failure: no error beep
             self._led("off")
             self.busy = False
             self.state.update(phase="stopped", step=None, prompt="Session cancelled. Nothing was saved.")
@@ -229,7 +234,9 @@ class Controller:
             record = steadi.evaluate(person, steadi.metrics_from_steps(results), started)
             record.update(common, steps=results)
             person["checkins"].append(record)
-            self._led(record["level"])
+            # Partly measured isn't "green": leave the base station's LED off rather than say all clear.
+            clear = record["level"] == "green" and steadi.unmeasured(record["metrics"])
+            self._led("off" if clear else record["level"])
         else:
             record = {"date": started.isoformat(timespec="seconds"), **common, "plan": plan,
                       "sets": [r for sid, r in results.items() if sid.startswith("sit_to_stand")],
@@ -278,10 +285,10 @@ class Controller:
             sid = f"sit_to_stand#{i + 1}"
             results[sid] = await self._sit_to_stand_set(
                 sid, f"Sit in a sturdy chair. On 'Go', stand up and sit down {sts['reps']} times. "
-                "Each beep is one rep.", sts["reps"])
+                "Each beep counts one.", sts["reps"])
         for i in range(bal["holds"]):
             sid = f"hold_{bal['stance']}#{i + 1}"
-            feet = HOLD_FEET[bal["stance"]]
+            feet = steadi.STANCE_WORDS[bal["stance"]]
             results[sid] = await self._hold(
                 sid, f"hold_{bal['stance']}", f"Stand at the counter, one hand resting on it, {feet}. "
                 f"Hold for {bal['target_s']:g} seconds.", bal["target_s"])
@@ -298,7 +305,8 @@ class Controller:
     async def _begin(self, sid, kind, prompt, **act):
         """Wait for the button, then cue "Go" and return its time."""
         self._status(sid, "waiting")
-        self.state.update(step=sid, prompt=prompt + " Press the button when ready.", live={})
+        self.state.update(step=sid, prompt=prompt + " Press the button when you're ready, or ask your helper to.",
+                          live={})
         self._emit()
         self._pressed = False
         while not self._take_press():
@@ -328,7 +336,7 @@ class Controller:
             self._check_cancel()
             now = self.clock.now()
             self._emit_live(t_go)
-            if self._take_press():  # stopwatch fallback: the helper presses when seated
+            if self._take_stop_press(t_go):  # stopwatch fallback: the helper presses when seated
                 result, cue = {"tug_s": round(now - t_go, 2), "method": "button"}, "stop"
                 break
             if now >= next_check:
@@ -337,7 +345,9 @@ class Controller:
                     result, cue = await self._score(sid, t_go, now), "stop"
                     break
             if now - t_go >= TUG_TIMEOUT_S:
-                result, cue = {"tug_s": None, "method": "timeout"}, "error"
+                # Still walking at 60 s is a result (flagged); a belt that went quiet is a dropout (not measured).
+                error = signals.data_error(self._window(t_go)[0], t_go, now)
+                result, cue = {"tug_s": None, "method": "timeout", **({"error": error} if error else {})}, "error"
                 break
         self._end(sid, t_go, now, result, cue)
         return result
@@ -361,7 +371,8 @@ class Controller:
             if now >= next_check:
                 next_check = now + CHECK_S
                 t, acc, _ = self._window(t_go)
-                self._emit_live(t_go, reps=len(signals.stand_times(t, acc, t_go, t_limit=limit)))
+                self._emit_live(t_go, reps=len(signals.stand_times(t, acc, t_go, t_limit=limit)),
+                                limit_s=signals.CHAIR_STAND_S)
         now = self.clock.now()
         if arms:  # STEADI: stop if arms are needed and record 0
             result = {"stands": 0, "arms_used": True}
@@ -378,8 +389,8 @@ class Controller:
             await self.tick()
             self._check_cancel()
             now = self.clock.now()
-            pressed = self._take_press()
-            self._emit_live(t_go)
+            pressed = self._take_stop_press(t_go)
+            self._emit_live(t_go, target_s=seconds)
             if pressed:
                 t_end = now
                 break
@@ -406,7 +417,7 @@ class Controller:
             await self.tick()
             self._check_cancel()
             now = self.clock.now()
-            if self._take_press():  # the set ends early
+            if self._take_stop_press(t_go):  # the set ends early
                 break
             if now >= next_check:
                 next_check = now + CHECK_S

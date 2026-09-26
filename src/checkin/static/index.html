@@ -30,7 +30,7 @@
     --line-dark: rgba(255, 255, 255, 0.2);
     /* State colours, never used for decoration: LED azure = session in progress; green/amber/red = check-in level. */
     --led: #3aa0ff;
-    --green: #15803d;
+    --green: #136c34; /* 5.7:1 on --ground, so green text passes AA at body size */
     --amber: #f2a900;
     --red: #b42318;
     --focus: var(--blue);
@@ -74,22 +74,21 @@
 
   .sec-head {
     display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px;
-    padding-bottom: 18px; margin-bottom: clamp(24px, 3vw, 40px); border-bottom: 1px solid var(--ink);
+    padding-bottom: 16px; margin-bottom: clamp(24px, 3vw, 40px); border-bottom: 1px solid var(--line);
   }
   .ink .sec-head, .blue .sec-head { border-bottom-color: var(--line-dark); }
-  .label { font-size: 1.1em; font-weight: 650; color: var(--blue); letter-spacing: 0.01em; }
-  .label::before { content: "[\00a0"; content: "[\00a0" / ""; }
-  .label::after { content: "\00a0]"; content: "\00a0]" / ""; }
-  .ink .label, .blue .label { color: var(--blue-soft); }
+  /* Section headings outrank card titles (.sub). */
+  .label { font-size: clamp(1.35rem, 1.15rem + 0.6vw, 1.7rem); font-weight: 750; line-height: 1.2; letter-spacing: -0.005em; }
+  .ink .label, .blue .label { color: #fff; }
   .meta { color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
   .ink .meta, .blue .meta { color: var(--on-dark-muted); }
 
-  .display { font-stretch: 125%; font-weight: 820; text-transform: uppercase; line-height: 0.95; letter-spacing: -0.01em; }
-  .sub { font-stretch: 112%; font-weight: 780; text-transform: uppercase; letter-spacing: 0.005em; font-size: clamp(1.3rem, 1.1rem + 0.5vw, 1.6rem); line-height: 1.15; }
-  .value { display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+  .display { font-weight: 780; line-height: 1.05; letter-spacing: -0.015em; }
+  .sub { font-weight: 700; font-size: clamp(1.15rem, 1.05rem + 0.3vw, 1.3rem); line-height: 1.25; }
+  .value { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
   .num {
-    font-stretch: 78%; font-weight: 820; font-variant-numeric: tabular-nums; line-height: 0.9; letter-spacing: -0.015em;
-    font-size: clamp(2.6rem, 2rem + 3vw, 4.5rem);
+    font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.02em;
+    font-size: clamp(2.4rem, 1.9rem + 2.4vw, 4rem);
   }
   .unit { font-weight: 650; font-size: 1.15rem; color: var(--muted); }
   .ink .unit, .blue .unit { color: var(--on-dark-muted); }
@@ -102,14 +101,14 @@
 
   .tag {
     display: inline-block; vertical-align: middle; white-space: nowrap;
-    font-size: 0.8em; font-weight: 750; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.2;
-    padding: 4px 8px; border: 1.5px dashed currentColor; border-radius: 2px; font-stretch: 100%;
+    font-size: 1em; font-weight: 650; line-height: 1.2;
+    padding: 2px 8px; border: 1.5px dashed currentColor; border-radius: 2px;
   }
   .tag-flag { background: var(--red); border: 1.5px solid var(--red); color: #fff; }
   .tag-worse { border-style: solid; }
   .tag-ai { border-style: solid; color: var(--blue); }
 
-  /* ---- buttons: square corners; the label rolls up and a copy rolls in from below ------------------ */
+  /* ---- buttons: square corners, plain labels ------------------------------------------------------------ */
   .btn {
     font: inherit; font-weight: 700; font-size: 1em; line-height: 1.25; letter-spacing: 0.005em;
     min-height: 52px; padding: 0 22px; border-radius: 3px; border: 1.5px solid transparent;
@@ -135,12 +134,6 @@
   .link:hover { color: var(--ink); }
   .ink .link { color: var(--on-dark-muted); }
   .ink .link:hover { color: #fff; }
-  .roll { display: inline-block; overflow: hidden; height: 1.25em; line-height: 1.25; vertical-align: top; }
-  .roll > span { display: block; text-shadow: 0 1.25em currentColor; transition: transform 0.5s var(--ease); }
-  @media (hover: hover) {
-    .btn:not(:disabled):hover .roll > span, .views a:hover .roll > span { transform: translateY(-1.25em); }
-  }
-  .btn:not(:disabled):focus-visible .roll > span, .views a:focus-visible .roll > span { transform: translateY(-1.25em); }
 
   /* ---- fixed top bar: person on the left, the three views on the right ----------------------------- */
   .bar { position: sticky; top: 0; z-index: 20; background: var(--paper); border-bottom: 1px solid var(--line); }
@@ -180,22 +173,24 @@
   .answer-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px clamp(20px, 3vw, 40px); align-items: start; }
   .level-tile {
     width: clamp(112px, 13vw, 168px); aspect-ratio: 1; display: flex; align-items: flex-end; padding: 12px 14px;
-    font-size: clamp(1.25rem, 0.9rem + 1vw, 1.8rem); border-radius: 3px;
+    font-size: clamp(1.1rem, 0.85rem + 0.8vw, 1.5rem); font-weight: 750; line-height: 1.12; border-radius: 3px;
   }
   .level-green { background: var(--green); color: #fff; }
   .level-amber { background: var(--amber); color: var(--ink); }
   .level-red { background: var(--red); color: #fff; }
-  .level-none { background: var(--paper); color: var(--muted); border: 1.5px dashed var(--line); }
+  .level-none { background: var(--paper); color: var(--muted); border: 1.5px dashed #8a8fa3; }
   .ink .level-none { background: transparent; color: #fff; border: 1.5px solid var(--line-dark); }
-  #answer { font-size: clamp(1.9rem, 1.1rem + 2.6vw, 3.4rem); font-weight: 780; line-height: 1.08; letter-spacing: -0.015em; }
+  #answer { font-size: clamp(1.9rem, 1.2rem + 2.2vw, 3.2rem); font-weight: 750; line-height: 1.12; letter-spacing: -0.015em; }
   .answer-sub { margin-top: 14px; font-size: clamp(1.15rem, 1rem + 0.5vw, 1.4rem); max-width: 48ch; }
-  .answer-more { margin-top: 10px; font-weight: 650; max-width: 60ch; }
+  .answer-list { margin: 14px 0 0; padding-left: 1.2em; display: grid; gap: 6px; font-weight: 650; max-width: 62ch; }
+  .answer-plan { margin-top: 10px; max-width: 60ch; }
+  .answer-note { margin-top: 10px; color: var(--muted); max-width: 60ch; }
   .answer-when { margin-top: 10px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
   .reveal { display: block; overflow: hidden; padding-block: 0.06em; margin-block: -0.06em; }
   .reveal > span { display: block; }
   @media (prefers-reduced-motion: no-preference) {
     .reveal.play > span { animation: rise 1s var(--ease) both; }
-    .reveal.play ~ .answer-sub, .reveal.play ~ .answer-more { animation: fade 0.9s var(--ease) 0.2s both; }
+    .reveal.play ~ .answer-list, .reveal.play ~ .answer-sub { animation: fade 0.9s var(--ease) 0.2s both; }
   }
   @keyframes rise { from { transform: translateY(104%); } }
   @keyframes fade { from { opacity: 0; transform: translateY(8px); } }
@@ -204,22 +199,27 @@
   .cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .card { background: var(--ground); border-radius: 3px; padding: clamp(20px, 2.4vw, 28px); display: grid; gap: 14px; align-content: start; }
   .card h3 { min-height: 2.3em; }
-  .card .num { font-size: clamp(2.6rem, 2rem + 2.2vw, 3.8rem); }
+  .card .num { font-size: clamp(2.1rem, 1.7rem + 1.4vw, 3rem); }
   .card .what { color: var(--muted); }
   .verdict { display: flex; gap: 10px; align-items: baseline; }
   .verdict b { white-space: nowrap; }
   .mark { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; align-self: center; }
   .ok b { color: var(--green); } .ok .mark { background: var(--green); }
-  .flag b { color: var(--red); } .flag .mark { background: var(--red); }
+  /* Flagged or getting worse: a chip in the check-in's level colour (amber unless the level is red),
+     so a flagged card is never quieter than an OK one. */
+  .flag .mark { display: none; }
+  .flag b { background: var(--amber); color: var(--ink); padding: 1px 8px; border-radius: 2px; }
+  .flag.red b { background: var(--red); color: #fff; }
   .unknown b { color: var(--muted); } .unknown .mark { background: var(--line); }
   .trend { padding-top: 12px; border-top: 1px solid var(--line); }
   .trend b { font-weight: 750; }
 
   .ex-days { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
-  .ex-days .num { font-size: clamp(3.4rem, 2.4rem + 4vw, 6rem); }
+  .ex-days .num { font-size: clamp(2.2rem, 1.8rem + 1.6vw, 3.2rem); }
   .ex-days p { font-size: 1.2em; font-weight: 600; }
   .today { margin-top: clamp(28px, 4vw, 44px); }
   .today h3 { margin-bottom: 12px; }
+  .plan-why { margin-top: 14px; max-width: 60ch; }
 
   .rows { border-top: 1px solid var(--line); }
   .ink .rows, .blue .rows, .ink .row, .blue .row { border-color: var(--line-dark); }
@@ -235,6 +235,7 @@
   .r-meta b { color: var(--ink); font-weight: 650; }
   .blue .r-meta, .ink .r-meta { color: var(--on-dark-muted); }
   .r-value { grid-area: value; justify-self: end; text-align: right; }
+  .r-value .value { justify-content: flex-end; }
   .r-value .text { font-weight: 750; font-size: 1.3em; line-height: 1.2; }
   .row.flagged .r-value .num { color: var(--red); }
   .row .num { font-size: clamp(2.2rem, 1.7rem + 2.2vw, 3.6rem); }
@@ -243,7 +244,8 @@
   .summary-make > p { flex: 1 1 32ch; max-width: 60ch; }
   .btn[aria-busy="true"] { cursor: progress; opacity: 0.7; }
   .family-text { margin-top: 28px; font-size: clamp(1.2rem, 1rem + 0.5vw, 1.4rem); line-height: 1.5; max-width: 56ch; }
-  .family-by { margin-top: 14px; display: flex; gap: 8px; }
+  .family-text:empty { margin: 0; }
+  .family-actions { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
   .home-note { margin-top: clamp(32px, 4vw, 48px); padding-top: 18px; border-top: 1px solid var(--line); }
 
   .profile-panel { border-bottom: 1px solid var(--line); }
@@ -281,26 +283,54 @@
   .led.red { background: #ef4444; box-shadow: none; }
   .run-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(24px, 3vw, 40px); }
   .step-title { color: var(--blue-soft); margin-bottom: 14px; }
-  #prompt { font-size: clamp(1.8rem, 1rem + 2.6vw, 3rem); font-weight: 650; line-height: 1.2; max-width: 30ch; }
+  #prompt { font-size: clamp(1.8rem, 1rem + 2.6vw, 3rem); font-weight: 650; line-height: 1.3; max-width: min(30ch, 100%); }
+  /* Local instruction picture. On a wide screen it sits beside the words; below them when stacked. */
+  .step-fig { margin: 0; }
+  .step-fig img {
+    display: block; width: auto; max-width: 100%; height: auto; max-height: min(34vh, 360px);
+    background: #fff; border-radius: 3px;
+  }
   /* One live line, and its space kept so the Button never jumps when the clock starts. */
   #live { margin-top: clamp(16px, 2vw, 28px); min-height: 1.2em; font-size: clamp(1.8rem, 1.2rem + 2.2vw, 3rem); font-weight: 780; font-variant-numeric: tabular-nums; color: #fff; }
   .press { display: grid; gap: 14px; align-content: start; }
   #button {
     width: 100%; min-height: clamp(150px, 26vh, 260px); border-radius: 4px; border: 2px solid #fff; background: #fff; color: var(--ink);
-    font-size: clamp(2rem, 1.3rem + 2.6vw, 3.4rem); font-stretch: 125%; font-weight: 850; text-transform: uppercase;
-    letter-spacing: 0.02em; transition: background-color 0.2s, transform 0.12s;
+    font-size: clamp(2rem, 1.3rem + 2.6vw, 3.4rem); font-weight: 800;
+    transition: background-color 0.2s, transform 0.12s;
   }
   #button:not(:disabled):hover { background: #e4e8f5; }
   #button:active { transform: translateY(2px); }
   #arms-used { width: 100%; }
-  .cancel-row { display: flex; justify-content: flex-end; margin-left: auto; }
 
+  /* A step reads differently in each stage (#station[data-stage]): "waiting" is the paragraph and a big
+     "I'm ready"; "go" turns the whole screen blue with one huge word; "moving" is one big word readable from
+     the line or the counter, time left, and a small labelled helper control; "rest" is a short pause. */
+  .session.go { background: var(--blue); }
+  .cue { font-size: clamp(3rem, 1rem + 8vw, 8rem); font-weight: 780; line-height: 1.02; letter-spacing: -0.02em; max-width: 12ch; }
+  .session.go .cue { font-size: clamp(6rem, 2rem + 16vw, 14rem); }
+  .feet { margin-block: 4px 20px; }
+  .feet svg { width: clamp(90px, 12vw, 140px); height: auto; display: block; }
+  .meter { margin-top: 18px; height: 16px; max-width: 34rem; background: rgba(255, 255, 255, 0.2); border-radius: 2px; overflow: hidden; }
+  .meter > span { display: block; height: 100%; background: #fff; }
+  #helper { width: 100%; min-height: 64px; white-space: normal; text-align: center; }
+  #helper[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+  .helper-hint { color: var(--on-dark-muted); }
+  .stop-btn { width: 100%; margin-top: clamp(16px, 3vw, 32px); }
+  .setup-list { margin: clamp(20px, 3vw, 32px) 0 0; padding-left: 1.3em; display: grid; gap: 14px; max-width: 44ch;
+    font-size: clamp(1.25rem, 1rem + 0.9vw, 1.7rem); font-weight: 600; line-height: 1.3; }
+
+  .idle-h { font-size: clamp(2rem, 1.2rem + 3vw, 3.6rem); }
   .choose { display: grid; gap: 0; border-top: 1px solid var(--line-dark); margin-top: clamp(20px, 3vw, 32px); }
   .choice { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 32px; padding-block: 22px; border-bottom: 1px solid var(--line-dark); }
   .choice h3 { margin-bottom: 4px; }
   .choice p { color: var(--on-dark-muted); max-width: 52ch; }
   .choice .btn { min-width: 200px; }
-  #done-answer { font-size: clamp(1.9rem, 1.1rem + 2.6vw, 3.2rem); font-weight: 780; line-height: 1.1; }
+  #done-answer { font-size: clamp(2.2rem, 1.2rem + 3.4vw, 4rem); font-weight: 780; line-height: 1.08; }
+  .done-result { margin-top: clamp(28px, 4vw, 44px); padding-top: clamp(20px, 3vw, 28px); border-top: 1px solid var(--line-dark); }
+  .done-result-text { font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.2rem); font-weight: 750; line-height: 1.15; }
+  /* A flagged row in the check-in result: the level colour, as on Home. */
+  .chip { display: inline-block; background: var(--amber); color: var(--ink); padding: 1px 8px; border-radius: 2px; font-weight: 700; }
+  .chip.red { background: var(--red); color: #fff; }
   .done-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px clamp(20px, 3vw, 40px); align-items: start; }
   .done-sub { margin-top: 12px; font-size: 1.2em; color: var(--on-dark-muted); max-width: 50ch; }
   #done-list { margin-top: clamp(24px, 3vw, 36px); }
@@ -309,28 +339,55 @@
 
   /* ---- For the doctor ----------------------------------------------------------------------------- */
   .doc-intro { padding-block: clamp(36px, 5vw, 64px) 0; }
-  .doc-intro h1 { font-size: clamp(2rem, 1.2rem + 3vw, 3.6rem); }
-  .doc-facts { margin-top: 16px; font-size: 1.15em; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
-  .claim { margin-top: 10px; color: var(--muted); max-width: 64ch; }
+  /* The patient leads, not the audience label: name, age, sex, latest check-in. */
+  .doc-intro h1 { font-size: clamp(1.8rem, 1.2rem + 1.8vw, 2.6rem); }
+  .doc-facts { margin-top: 10px; font-size: 1.15em; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; }
+  .claim { margin-top: 12px; color: var(--muted); max-width: 72ch; }
   .alert-items { list-style: none; margin: 0 0 8px; padding: 0; border-top: 1px solid var(--line); }
   .alert-items li { padding: 12px 0; border-bottom: 1px solid var(--line); font-weight: 600; }
   .alert-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 14px; font-weight: 700; font-size: 1.1em; }
-  .alert-head .level-tile { width: auto; aspect-ratio: auto; padding: 6px 12px; font-size: 1rem; }
+  .alert-head .level-tile { width: auto; aspect-ratio: auto; padding: 6px 12px; font-size: 1.125rem; min-height: 0; }
   .advice { margin-top: 12px; max-width: 64ch; }
-  #results { margin-top: clamp(28px, 4vw, 44px); }
+  #results { margin-top: clamp(24px, 3vw, 36px); }
+  /* Results: one row per test, value / STEADI rule / change / notes side by side, numbers aligned. */
+  .results { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .results thead th { text-align: left; font-weight: 650; color: var(--muted); padding: 0 16px 10px 0; border-bottom: 1px solid var(--ink); vertical-align: bottom; }
+  .results td, .results tbody th { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+  .results .test { font-weight: 700; }
+  .results .test .tag { margin-left: 8px; }
+  .results .res { text-align: right; white-space: nowrap; }
+  .results td.res { font-weight: 750; font-size: 1.25em; line-height: 1.2; }
+  .results .u { display: inline-block; min-width: 3.6em; padding-left: 0.3em; text-align: left; font-size: 0.72em; font-weight: 600; color: var(--muted); }
+  .results .soft { color: var(--muted); }
+  .spark svg { width: 96px; height: 28px; display: block; }
+  .tag-flag.amber { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+  .levels { list-style: none; margin: 0 0 20px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .lv { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; padding: 10px 12px; min-width: 128px; background: var(--ground); border-radius: 3px; }
+  .lv-sw { width: 14px; height: 14px; border-radius: 2px; background: var(--green); }
+  .lv-amber .lv-sw { background: var(--amber); } .lv-red .lv-sw { background: var(--red); }
+  .lv-none .lv-sw { background: none; border: 1.5px dashed #8a8fa3; }
+  .lv-date { font-weight: 700; }
+  .lv-word, .lv-why, .lv .tag { grid-column: 2; justify-self: start; } .lv-why { color: var(--muted); }
+  .trend-note { margin-bottom: clamp(24px, 3vw, 36px); }
   .charts { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(32px, 4vw, 56px); }
+  .data { margin-top: clamp(28px, 4vw, 44px); }
+  .data summary { cursor: pointer; font-weight: 650; color: var(--blue); min-height: 44px; display: flex; align-items: center; }
+  .data table { margin-top: 12px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .data th, .data td { padding: 8px 16px 8px 0; border-bottom: 1px solid var(--line); text-align: left; }
   .chart-box { border-top: 1px solid var(--line); padding-top: 16px; }
   .chart-box:first-child { border-top: 0; padding-top: 0; }
   .chart-box h3 { margin-bottom: 12px; }
   .chart { position: relative; height: 280px; }
-  .blue .chart { margin-top: clamp(32px, 4vw, 48px); height: 260px; }
+  .ex-chart-h { margin-top: clamp(32px, 4vw, 48px); margin-bottom: 12px; }
+  .ex-chart { height: 260px; }
   .why { margin-top: 20px; font-size: 1.05em; max-width: 64ch; }
   .sessions { margin-top: clamp(40px, 5vw, 60px); }
   .sessions h3 { margin-bottom: 14px; }
-  .session-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 24px; align-items: center; padding-block: 14px; border-bottom: 1px solid var(--line-dark); }
-  .session-row:first-of-type { border-top: 1px solid var(--line-dark); }
+  .session-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 24px; align-items: center; padding-block: 14px; border-bottom: 1px solid var(--line); }
+  .session-row:first-of-type { border-top: 1px solid var(--line); }
   .session-row .when { font-weight: 650; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
-  .session-row .what { color: var(--on-dark-muted); text-align: right; }
+  .session-row .what { color: var(--muted); text-align: right; }
+  .r-name .r-title { font-size: 1.15em; font-weight: 700; line-height: 1.25; }
   .doctor-text {
     margin-top: 28px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; font-variant-numeric: tabular-nums;
     background: var(--ground); padding: clamp(20px, 3vw, 32px); border-radius: 3px; max-width: 82ch;
@@ -348,20 +405,28 @@
       display: block !important; padding: 0; margin: 0; background: none; max-width: none;
     }
     body.print-doctor #doctor-text { display: block !important; margin: 0; background: none; padding: 0; max-width: none; line-height: 1.5; }
+    /* Who it's about and when it was made: on paper only (the on-screen text stays nameless for the AI). */
+    body.print-doctor #doctor-text::before { content: attr(data-head); display: block; font-weight: 700; margin-bottom: 12pt; }
+    /* Printing any view without the button: no sticky bar, no notices. */
+    .bar { display: none; }
   }
 
   /* ---- layouts ------------------------------------------------------------------------------------ */
   @media (min-width: 760px) {
     .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
-  @media (min-width: 900px) {
+  @media (min-width: 700px) {
     .charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .chart-box:nth-child(2) { border-top: 0; padding-top: 0; }
   }
-  /* Tablet landscape and laptop: instruction on the left, the Button on the right, no scrolling. */
-  @media (min-width: 1000px) and (orientation: landscape) {
+  /* Tablet landscape and laptop: instruction on the left, the Button on the right, no scrolling.
+     800px, not 1000px: a 1280×800 tablet at 150% Windows scaling is 853px wide. */
+  @media (min-width: 800px) and (orientation: landscape) {
     .run-grid { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: start; }
     #button { min-height: clamp(220px, 42vh, 380px); font-size: clamp(1.8rem, 3.3vw, 2.8rem); }
+    /* The picture shares this column with the button, so the button gives it room. */
+    .press:has(#step-fig:not([hidden])) #button { min-height: clamp(140px, 22vh, 220px); }
+    .step-fig img { max-height: min(28vh, 280px); }
   }
   @media (max-width: 760px) {
     .fields { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -374,15 +439,25 @@
     .row.two .r-value { justify-self: start; text-align: left; }
     .card h3 { min-height: 0; }
   }
-  @media (max-width: 700px) {
+  @media (max-width: 960px) {
     :root { --bar-h: 116px; }
     .bar .wrap { flex-wrap: wrap; align-content: center; }
     .who { width: 100%; flex-wrap: nowrap; }
     #person { flex: 0 1 auto; }
-    #person-tag, #edit-profile { flex-shrink: 0; }
+    #person-tag, #edit-profile, #add-person { flex-shrink: 0; }
     #edit-profile { margin-left: auto; }
     .views { width: 100%; }
     .views a { flex: 1 1 0; justify-content: center; padding-inline: 6px; }
+    /* Results table as stacked rows: each cell says what it is. */
+    .results thead { display: none; }
+    .results, .results tbody, .results tr, .results td, .results tbody th { display: block; }
+    .results tr { padding-block: 12px; border-bottom: 1px solid var(--line); }
+    .results td, .results tbody th { border: 0; padding: 2px 0; }
+    .results td:empty { display: none; }
+    .results td.res { text-align: left; }
+    .results td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); font-weight: 600; font-size: 1rem; }
+  }
+  @media (max-width: 700px) {
     .start .btn, .form-actions .btn, .summary-make .btn, .choice .btn, .done-actions .btn { flex: 1 1 100%; }
     .session-row { grid-template-columns: minmax(0, 1fr); }
     .session-row .what { text-align: left; }
@@ -393,17 +468,16 @@
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
-    .roll > span { transform: none !important; }
   }
 </style>
 </head>
 <body>
 <!--
 THESIS: One dashboard, three audiences. Home answers "is everything all right?" in one plain sentence; Check-in is one instruction and one Button; For the doctor holds every clinical number. Refuses the everything-on-one-page dashboard.
-OWN-WORLD: Ink #080912, royal blue #2a4093 as the only accent (labels, primary actions, cutoff lines), cool grey #eef0f4 and white fields; Archivo variable, wide heavy caps for headings, condensed heavy numerals; [ bracketed ] blue section labels; 1px ruled rows; 3px corners. Azure LED and green/amber/red are reserved for state.
+OWN-WORLD: Ink #080912, royal blue #2a4093 as the only accent (primary actions, cutoff lines), cool grey #eef0f4 and white fields; Archivo variable in sentence case, bold not wide; plain ink section headings above 1px rules; 3px corners. Calm over loud: levels are named by what to do (No flags / Mention to the doctor / Talk to a doctor soon). Azure LED and green/amber/red are reserved for state.
 STORY: The family reads the answer and three plain cards, starts a check-in; the older adult follows one instruction at a time and presses the Button; the doctor gets the numbers and a printout.
 FIRST VIEWPORT: White fixed bar (person left; Home, Check-in, For the doctor right); level tile beside the answer sentence at display size; Start check-in and Start exercise under it.
-FORM: brief-pinned direction (beats the roll), seed e854a463. Raises: size-only hierarchy (festival lineup); absence drawn on purpose (seven-segment).
+FORM: calmer pass after the 2026-09-26 critique (was a festival-lineup poster): sentence case, no brackets or rolling labels, numbers capped below the answer; absence still drawn on purpose.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
 <header class="bar">
@@ -412,12 +486,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       <label for="person" class="visually-hidden">Person</label>
       <select id="person"></select>
       <span id="person-tag"></span>
-      <button id="edit-profile" class="link" type="button" aria-controls="profile-panel">Edit profile</button>
+      <button id="edit-profile" class="link" type="button" aria-controls="profile-panel" aria-expanded="false">Edit profile</button>
+      <button id="add-person" class="link" type="button" aria-controls="profile-panel" aria-expanded="false">Add a person</button>
     </div>
     <nav class="views" aria-label="Views">
-      <a href="#home"><span class="roll"><span>Home</span></span></a>
-      <a href="#checkin"><span class="roll"><span>Check-in</span></span></a>
-      <a href="#doctor"><span class="roll"><span>For the doctor</span></span></a>
+      <a href="#home">Home</a>
+      <a href="#checkin">Check-in</a>
+      <a href="#doctor">For the doctor</a>
     </nav>
   </div>
   <div class="notices">
@@ -437,10 +512,10 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         <div class="fields">
           <label class="field">Name <input name="name" required maxlength="60" autocomplete="off"></label>
           <label class="field">Age <input name="age" type="number" min="18" max="120" inputmode="numeric"></label>
-          <label class="field">Sex
-            <select name="sex"><option value="">Not given</option><option value="male">Male</option>
-              <option value="female">Female</option></select>
-            <small>Used to compare leg strength with others the same age.</small></label>
+          <div class="field"><label for="profile-sex">Sex</label>
+            <select id="profile-sex" name="sex" aria-describedby="sex-help"><option value="">Not given</option>
+              <option value="male">Male</option><option value="female">Female</option></select>
+            <small id="sex-help">Used to compare leg strength with others the same age.</small></div>
         </div>
         <fieldset class="kq">
           <legend>Three questions about falls</legend>
@@ -449,8 +524,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           <label class="check"><input type="checkbox" name="worried"> Worries about falling</label>
         </fieldset>
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary"><span class="roll"><span>Save</span></span></button>
-          <button type="button" id="new-person" class="btn btn-outline"><span class="roll"><span>Save as a new person</span></span></button>
+          <button type="submit" id="profile-save" class="btn btn-primary">Save</button>
         </div>
       </form>
     </div>
@@ -459,17 +533,19 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <section class="answer" aria-labelledby="answer">
     <div class="wrap">
       <div class="answer-grid">
-        <div id="answer-level" class="level-tile display level-none">…</div>
+        <div id="answer-level" class="level-tile level-none">…</div>
         <div>
           <h1 class="reveal" id="answer-wrap"><span id="answer">Loading…</span></h1>
+          <ul id="answer-list" class="answer-list" hidden></ul>
           <p id="answer-sub" class="answer-sub"></p>
-          <p id="answer-more" class="answer-more"></p>
+          <p id="answer-plan" class="answer-plan" hidden></p>
+          <p id="answer-note" class="answer-note" hidden>This is fall-risk screening, not a diagnosis.</p>
           <p id="answer-when" class="answer-when"></p>
         </div>
       </div>
       <div class="start">
-        <button id="start-checkin" class="btn btn-primary btn-big"><span class="roll"><span>Start check-in</span></span></button>
-        <button id="start-exercise" class="btn btn-outline btn-big"><span class="roll"><span>Start exercise</span></span></button>
+        <button id="start-checkin" class="btn btn-primary btn-big">Start check-in</button>
+        <button id="start-exercise" class="btn btn-outline btn-big">Start today's exercises</button>
       </div>
     </div>
   </section>
@@ -481,7 +557,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     </div>
   </section>
 
-  <section class="block blue" aria-labelledby="home-ex-h">
+  <section class="block" aria-labelledby="home-ex-h">
     <div class="wrap">
       <div class="sec-head"><h2 id="home-ex-h" class="label">Exercise</h2><span id="home-ex-tag"></span></div>
       <div id="home-exercise"></div>
@@ -492,12 +568,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <div class="wrap">
       <div class="sec-head"><h2 id="family-h" class="label">Summary for the family</h2><span id="summary-tag"></span></div>
       <div class="summary-make">
-        <p>A short summary of how things are going, in plain words. It can take a few seconds to write.</p>
-        <button id="make-summary" class="btn btn-primary"><span class="roll"><span>Make a summary</span></span></button>
+        <p id="family-make-text">A short summary of how things are going, in plain words. It can take a few seconds to write.</p>
+        <button id="make-summary" class="btn btn-primary" disabled>Make a summary</button>
       </div>
-      <div id="family-summary" aria-live="polite" hidden>
-        <p id="family-text" class="family-text"></p>
-        <p id="family-by" class="family-by"></p>
+      <p id="family-text" class="family-text" aria-live="polite"></p>
+      <div id="family-summary" class="family-actions" hidden>
+        <button id="copy-summary" class="btn btn-outline" type="button">Copy summary</button>
+        <span id="family-by"></span>
       </div>
       <p class="note home-note">This is fall-risk screening. It flags increased fall risk and tracks change over time. It does not diagnose anything; a doctor can do a full fall-risk assessment.</p>
     </div>
@@ -509,53 +586,83 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <section id="station" class="session ink" data-phase="idle" aria-label="Check-in">
     <div class="wrap">
       <div id="ci-idle">
-        <h1 class="display" style="font-size: clamp(2rem, 1.2rem + 3vw, 3.6rem)">Ready when you are</h1>
+        <h1 class="display idle-h">Ready when you are</h1>
         <div class="choose">
           <div class="choice">
             <div><h2 class="sub">Check-in</h2><p>About 3 minutes: walking, standing up from a chair, and standing still.</p></div>
-            <button id="start-checkin-2" class="btn btn-white btn-big"><span class="roll"><span>Start check-in</span></span></button>
+            <button id="start-checkin-2" class="btn btn-white btn-big">Start check-in</button>
           </div>
           <div class="choice">
             <div><h2 class="sub">Today's exercises</h2><p id="plan-words">The exercises planned for today.</p></div>
-            <button id="start-plan" class="btn btn-white btn-big"><span class="roll"><span>Start exercises</span></span></button>
+            <button id="start-plan" class="btn btn-white btn-big">Start today's exercises</button>
           </div>
           <div class="choice">
             <div><h2 class="sub">Quick exercise</h2><p>Stand up from a chair and sit back down, 5 times.</p></div>
-            <button id="start-quick" class="btn btn-outline btn-big"><span class="roll"><span>Start quick exercise</span></span></button>
+            <button id="start-quick" class="btn btn-outline btn-big">Start quick exercise</button>
           </div>
+        </div>
+      </div>
+
+      <div id="ci-setup" hidden>
+        <h1 id="setup-h" class="display idle-h" tabindex="-1">Before you start</h1>
+        <ul class="setup-list">
+          <li>The belt is around the lower back and switched on.</li>
+          <li>An arm chair, with a line on the floor 3 metres (10 feet) in front of it.</li>
+          <li>A chair without arms, against a wall.</li>
+          <li>A kitchen counter or sturdy table to stand beside.</li>
+          <li>Someone stays beside you the whole time.</li>
+        </ul>
+        <div class="done-actions">
+          <button id="setup-go" class="btn btn-white btn-big">We're ready: start</button>
+          <button id="setup-back" class="btn btn-outline btn-big">Back</button>
         </div>
       </div>
 
       <div id="ci-running" hidden>
         <div class="session-top">
           <p class="step-count"><span id="led" class="led" aria-hidden="true"></span><span id="step-count"></span><span id="steps-tag"></span></p>
-          <div class="cancel-row"><button id="cancel" class="link" type="button">Cancel</button></div>
         </div>
         <div class="run-grid">
           <div>
-            <h2 id="step-title" class="sub step-title"></h2>
-            <p id="prompt" aria-live="polite"></p>
-            <p id="live" aria-live="off"></p>
+            <h2 id="step-title" class="sub step-title" hidden></h2>
+            <div id="feet" class="feet" hidden></div>
+            <p id="cue" class="cue" hidden></p>
+            <p id="prompt"></p>
+            <p id="live"></p>
+            <div id="meter" class="meter" hidden><span></span></div>
           </div>
           <div class="press">
-            <button id="button" class="btn"><span class="roll"><span>Press here</span></span></button>
-            <button id="arms-used" class="btn btn-outline" hidden><span class="roll"><span>Chair stand: arms used</span></span></button>
+            <figure id="step-fig" class="step-fig" hidden>
+              <img id="step-img" src="/static/img/tug.jpg" width="1152" height="864"
+                alt="Standing up from an arm chair and walking toward a line taped on the floor.">
+            </figure>
+            <button id="button" class="btn">I'm ready</button>
+            <button id="helper" class="btn btn-outline" hidden></button>
+            <p id="helper-hint" class="helper-hint" hidden></p>
+            <button id="arms-used" class="btn btn-outline" hidden>Stop: they needed their arms</button>
+            <button id="cancel" class="btn btn-outline stop-btn" type="button">Stop the check-in</button>
           </div>
         </div>
+        <p id="announce" class="visually-hidden" aria-live="polite"></p>
       </div>
 
       <div id="ci-done" hidden>
-        <div class="done-grid">
-          <div id="done-level" class="level-tile display level-none"></div>
-          <div>
-            <h1 id="done-answer"></h1>
-            <p id="done-sub" class="done-sub"></p>
+        <h1 id="done-answer" tabindex="-1"></h1>
+        <p id="done-sub" class="done-sub"></p>
+        <div id="done-result" class="done-result" hidden>
+          <div class="done-grid">
+            <div id="done-level" class="level-tile level-none"></div>
+            <div>
+              <h2 id="done-result-text" class="done-result-text"></h2>
+              <ul id="done-reasons" class="answer-list" hidden></ul>
+              <p id="done-advice" class="done-sub"></p>
+            </div>
           </div>
         </div>
         <div id="done-list"></div>
         <div class="done-actions">
-          <a href="#home" class="btn btn-white btn-big"><span class="roll"><span>Back to home</span></span></a>
-          <p class="meta">Going back to home in a few seconds.</p>
+          <a href="#home" class="btn btn-white btn-big">Back to home</a>
+          <button id="done-again" class="btn btn-outline btn-big" hidden>Start again</button>
         </div>
       </div>
     </div>
@@ -566,9 +673,9 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 <div id="view-doctor" class="view" hidden>
   <section class="doc-intro">
     <div class="wrap">
-      <h1 class="display">For the doctor</h1>
+      <h1 id="doc-name" class="display">For the doctor</h1>
       <p id="doc-facts" class="doc-facts"></p>
-      <p class="claim">Fall-risk screening with the CDC's STEADI tests, scored by a lower-back motion sensor: it flags increased fall risk and tracks change from baseline. It does not diagnose.</p>
+      <p class="claim">Fall-risk screening with the CDC's STEADI tests, run at home by the family and scored by a lower-back motion sensor: it flags increased fall risk and tracks change from baseline. It does not diagnose. The balance test stops at the tandem stance (no single-leg stand), and the rest of a STEADI assessment (medications, postural blood pressure, vision, feet and footwear, home hazards) isn't covered.</p>
     </div>
   </section>
 
@@ -582,22 +689,28 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
   <section class="block paper" aria-labelledby="trends-h">
     <div class="wrap">
-      <div class="sec-head"><h2 id="trends-h" class="label">Trends</h2></div>
+      <div class="sec-head"><h2 id="trends-h" class="label">Trends</h2><span id="trends-tag"></span></div>
       <p id="trends-empty" class="empty" hidden>Trends appear after the first check-in.</p>
-      <div id="charts" class="charts">
-        <div class="chart-box"><h3 class="sub">Timed Up and Go</h3><div class="chart"><canvas id="chart-tug"></canvas></div></div>
-        <div class="chart-box"><h3 class="sub">30-second chair stand</h3><div class="chart"><canvas id="chart-chair"></canvas></div></div>
-        <div class="chart-box"><h3 class="sub">Tandem stance</h3><div class="chart"><canvas id="chart-tandem"></canvas></div></div>
-        <div class="chart-box"><h3 class="sub">Dual-task cost</h3><div class="chart"><canvas id="chart-cost"></canvas></div></div>
+      <div id="trends-body">
+        <ol id="levels" class="levels" aria-label="Level at each check-in"></ol>
+        <p class="note trend-note">Baseline (grey dashes): the average of up to 4 earlier check-ins, our rule, not STEADI's. Shaded: the side of a STEADI cutoff that flags.</p>
+        <div id="charts" class="charts">
+          <div class="chart-box"><h3 class="sub">Timed Up and Go</h3><div class="chart"><canvas id="chart-tug" role="img"></canvas></div></div>
+          <div class="chart-box"><h3 class="sub">30-second chair stand</h3><div class="chart"><canvas id="chart-chair" role="img"></canvas></div></div>
+          <div class="chart-box"><h3 class="sub">Balance: hardest stance held 10 s</h3><div class="chart"><canvas id="chart-stances" role="img"></canvas></div></div>
+          <div class="chart-box"><h3 class="sub">Dual-task cost</h3><div class="chart"><canvas id="chart-cost" role="img"></canvas></div></div>
+        </div>
+        <details class="data"><summary>Show every check-in as a table</summary><div id="trend-table"></div></details>
       </div>
     </div>
   </section>
 
-  <section class="block blue" aria-labelledby="exercise-h">
+  <section class="block" aria-labelledby="exercise-h">
     <div class="wrap">
       <div class="sec-head"><h2 id="exercise-h" class="label">Exercise log</h2></div>
       <div id="plan"></div>
-      <div class="chart"><canvas id="chart-adherence"></canvas></div>
+      <h3 class="sub ex-chart-h">Exercise days per week</h3>
+      <div class="chart ex-chart"><canvas id="chart-adherence" role="img"></canvas></div>
       <div id="sessions" class="sessions"></div>
     </div>
   </section>
@@ -606,12 +719,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <div class="wrap">
       <div class="sec-head"><h2 id="doctor-summary-h" class="label">Summary for the doctor</h2><span id="doctor-summary-tag"></span></div>
       <div class="summary-make">
-        <p>A plain-text summary built only from the recorded numbers, to print, save as a PDF, or download. It has no name in it.</p>
-        <button id="make-summary-doctor" class="btn btn-primary"><span class="roll"><span>Make summary</span></span></button>
-        <button id="print-doctor" class="btn btn-outline" hidden><span class="roll"><span>Print or save as PDF</span></span></button>
-        <button id="download-doctor" class="btn btn-outline" hidden><span class="roll"><span>Download as text file</span></span></button>
+        <p>A plain-text summary built only from the recorded numbers, to print, save as a PDF, download or copy. Printed and downloaded copies start with the name and the date. When an OpenAI key is set, making a summary also sends this text, without the name, to OpenAI to write the family's version.</p>
+        <button id="make-summary-doctor" class="btn btn-primary" disabled>Make a summary</button>
+        <button id="print-doctor" class="btn btn-outline" hidden>Print or save as PDF</button>
+        <button id="download-doctor" class="btn btn-outline" hidden>Download as text file</button>
+        <button id="copy-doctor" class="btn btn-outline" hidden>Copy text</button>
       </div>
-      <div id="doctor-text" class="doctor-text" hidden></div>
+      <div id="doctor-text" class="doctor-text" tabindex="-1" hidden></div>
     </div>
   </section>
 </div>

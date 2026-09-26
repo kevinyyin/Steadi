@@ -231,3 +231,24 @@ def test_a_check_in_that_measured_nothing_is_skipped_not_a_reset():
     add(p, metrics(stands=9, tandem=6.0), 2)
     plan = steadi.make_plan(p, TODAY)
     assert (plan["sit_to_stand"]["sets"], plan["balance"]["holds"]) == (3, 4)
+
+
+def test_a_balance_flag_names_the_stance_that_broke():
+    m = {"tug_s": 10.0, "chair_stands": 14, "feet_together_s": 10.0, "semi_tandem_s": 4.2, "tandem_s": 0.0}
+    (flag,) = steadi.flags_for({}, m)
+    assert flag["text"] == "Held the semi-tandem stance 4.2 s, so tandem wasn't tried (STEADI flags tandem under 10 s)"
+
+
+def test_unmeasured_lists_missing_core_tests_but_not_a_timed_out_walk():
+    assert steadi.unmeasured({"tug_s": None, "chair_stands": 12, "tandem_s": None}) == ["tug_s", "tandem_s"]
+    assert steadi.unmeasured({"tug_s": None, "tug_timed_out": True, "chair_stands": 12, "tandem_s": 10.0}) == []
+    assert steadi.fmt(18.44, "%") == "18.4%" and steadi.fmt(3.25, "%", change=True) == "+3.2 points"
+    assert steadi.fmt(-2, "") == "-2" and steadi.fmt(11.03, "s") == "11 s"
+
+
+def test_stances_held_is_the_balance_ladder():
+    m = lambda ft, st, t: {"feet_together_s": ft, "semi_tandem_s": st, "tandem_s": t}  # noqa: E731
+    assert steadi.stances_held(m(10.0, 10.0, 10.0)) == 3
+    assert steadi.stances_held(m(10.0, 4.2, 0.0)) == 1
+    assert steadi.stances_held(m(3.0, 0.0, 0.0)) == 0
+    assert steadi.stances_held(m(None, None, None)) is None

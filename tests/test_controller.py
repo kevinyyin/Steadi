@@ -132,7 +132,7 @@ def test_cancel_saves_nothing(tmp_path):
     ctl, source, base, store, person = make(tmp_path)
     result = drive(ctl, ctl.run_session(person["id"], "checkin"), on_running=lambda c, r: c.stop("cancel"))
     assert result is None and store.get(person["id"])["checkins"] == []
-    assert ctl.state["phase"] == "stopped" and base.cues[-1] == "error" and not ctl.busy
+    assert ctl.state["phase"] == "stopped" and base.cues[-1] == "stop" and not ctl.busy  # a safety stop, no error beep
 
 
 class SilentAfterGo(SimSource):
@@ -151,6 +151,14 @@ def test_a_dead_sensor_is_not_scored_as_a_poor_result(tmp_path):
     assert record["steps"]["tug"]["method"] == "timeout" and record["metrics"]["tug_s"] is None
     assert record["metrics"]["chair_stands"] is None and record["metrics"]["tandem_s"] is None
     assert record["flags"] == [] and "error" in base.cues
+
+
+def test_a_walk_still_going_at_60_s_is_flagged_not_unmeasured(tmp_path):
+    ctl, source, base, store, person = make(tmp_path, sim.SimParams(walk_speed=0.05))  # ~2 minutes for 6 m
+    record = drive(ctl, ctl.run_session(person["id"], "checkin"))
+    assert record["steps"]["tug"] == {"tug_s": None, "method": "timeout"}  # the belt kept sending: no dropout
+    assert record["metrics"]["tug_timed_out"] and "tug" in [f["id"] for f in record["flags"]]
+    assert record["level"] != "green"
 
 
 def test_exercise_session_counts_reps_and_times_holds(tmp_path):
@@ -245,6 +253,24 @@ def test_a_double_tap_on_go_is_not_a_second_press(tmp_path):
     assert record["steps"]["tug"]["method"] == "sensor"
     assert abs(record["metrics"]["tug_s"] - source.truth["tug"]["tug_s"]) < 0.5
     assert record["metrics"]["feet_together_s"] == 10.0 and record["flags"] == []
+
+
+def test_a_nervous_press_just_after_go_changes_nothing(tmp_path):
+    targets = set()
+
+    def nervous(ctl, running):  # past the 1 s double-tap guard, inside the 3 s after "Go"
+        live = ctl.state["live"]
+        if running in ("tug", "balance_feet_together") and 1.2 <= live.get("elapsed_s", 0) <= 2.8:
+            ctl.press()
+        if running.startswith("balance"):
+            targets.add(live.get("target_s"))
+
+    ctl, source, base, store, person = make(tmp_path)
+    record = drive(ctl, ctl.run_session(person["id"], "checkin"), on_running=nervous)
+    assert record["steps"]["tug"]["method"] == "sensor"
+    assert abs(record["metrics"]["tug_s"] - source.truth["tug"]["tug_s"]) < 0.5
+    assert record["metrics"]["feet_together_s"] == 10.0 and record["flags"] == []
+    assert targets <= {None, 10.0} and 10.0 in targets  # the page can show time left
 
 
 def test_cancel_while_waiting_for_late_data_saves_nothing(tmp_path):

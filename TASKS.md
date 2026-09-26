@@ -35,3 +35,63 @@ Plan: docs/superpowers/plans/2026-09-26-fall-checkin-mvp.md
 - [x] Detector clean
 - [x] Dashboard files sent with Cache-Control: no-cache (stale app.js breaks the new page)
 - [ ] Later: design finish review and DESIGN.md; test on the Dell tablet with the real belt and base station
+
+## Home critique fixes (2026-09-26, calmer direction)
+
+Critique: .impeccable/critique/2026-09-26T20-10-18Z__src-checkin-static-index-html.md (25/40)
+
+- [x] 1. Family summary: plain flag lines (card wording), banned-word check on AI text; tests
+- [x] 2. Hero: name flagged areas, no "Also", level-coloured card marks, decline on its card, never Green when unmeasured
+- [x] 3. Errors: plain API errors, retry dashboard on reconnect instead of "Loading…" forever
+- [x] 4. Type: numbers below the answer, section h2 > card h3, values wrap, darker green (AA)
+- [x] 5. Actions: Start exercise starts the plan, Guest asked for age/sex first, "Add a person…" in picker, Copy summary, summary disabled with no check-in
+- [x] 6. Calmer: sentence case, no brackets or roll, meaning words for levels, calm line under a flag
+- [x] 7a. pytest (164), ruff, detector (regex fallback: 0), answerFor cases in node
+- [ ] 7b. Browser check at tablet/phone widths: needs the server running (starting it here was blocked)
+
+## Home critique fixes, round 2 (2026-09-26)
+
+Critique: .impeccable/critique/2026-09-26T20-29-42Z__src-checkin-static-index-html.md (25/40)
+
+- [x] 1. Flagged moment: every reason listed under the headline; declines say what changed (not "flags increased fall risk"), Home and family summary
+- [x] 2. Cards: flagged = amber/red chip, decline = "Getting worse" chip + "Two check-ins in a row." (fixes overflow)
+- [x] 3. Exercise section quiet (no blue band); no big "0"
+- [x] 4. People: visible Add a person button, menu only switches, open on last person, focus back on Close, Sex help text out of the label, close panel after save
+- [x] 5. Simulated: Dad read-only note instead of the form; plain 403
+- [x] 6. Tags at body size; offline startup (tile, Start check-in, disabled summary, first-connect warning, retry); label consistency
+- [x] 7a. pytest (165), ruff, detector (regex fallback: 0), answerFor/reasons cases in node
+- [ ] 7b. Browser pass at tablet/phone widths + /impeccable polish: needs the server running
+
+## Check-in critique fixes (2026-09-26)
+
+Critique: .impeccable/critique/2026-09-26T20-51-33Z__src-checkin-static-index-html-checkin.md (20/40)
+Decisions: person starts, helper stops; thanks first, result below; P0 first; all five issues.
+
+- [x] 1. Server: ignore stray presses for 3 s after Go (walk, holds, rounds); live target for time-left; prompt wording (counter on every stance, normal pace, take your time sitting down, no "instep"/"rep"); neutral cancel cue; tests
+- [x] 2. Button by phase: "I'm ready" while waiting; full-screen Go ~1.5 s; small helper control while moving (inactive 3 s), hidden in chair stand; rest beat between steps
+- [x] 3. Readable from 3 m: one big cue word while moving, draining bar / time left, foot pictures, no walk stopwatch
+- [x] 4. Setup screen before a check-in (belt, chairs, 3 m line, counter, someone beside you); name shown while running
+- [x] 5. Screen reader/keyboard: write warnings/prompt only on change, focus on start and result, Stop after the button with confirm, polite Go/step/done announcements, no empty heading
+- [x] 6. Ending: "You finished. Thank you." then the result for the family, flagged rows marked, honest rows (arms used, not tried, 1 decimal), no auto-return, Start again after a stop
+- [x] 7a. pytest (167), ruff, detector (regex fallback: 0), app.js stage-by-stage run in a Node harness
+- [ ] 7b. Browser pass (tablet portrait/landscape, laptop, 150% scaling) + /impeccable polish: needs the server running
+
+## Doctor view critique fixes (2026-09-26)
+
+Critique: .impeccable/critique/2026-09-26T21-09-45Z__src-checkin-static-index-html-doctor.md (22/40)
+Decisions: walk timeout is flagged; name + date on print/download only; wrong values first; all five issues.
+
+- [x] 1. Scoring: TUG timeout flagged ("did not finish in 60 s"); balance flag text names the stance that broke; a check-in with core tests missing is never shown green (doctor view, printout, family text, base LED); reasons per row (timeout, not tried, arms needed, dropout, how timed); tests
+- [x] 2. Trends: level history strip, baseline line + definition, stance ladder instead of the tandem chart, fixed axes, flagged side shaded, gaps as gaps, 1 decimal
+- [x] 3. Layout: patient header, results as one aligned table (result, STEADI rule, change, notes, sparkline), exercise log off the blue band, charts two-up on tablets
+- [x] 4. Charts for AT: role=img + summary label, one data table, adherence heading, legend not clickable, 16px chart text, fewer headings, doctor text focused when made
+- [x] 5. Copy: clinician-facing alert head/advice, decline-only = change from baseline, flags coloured by level, one formatter for screen and print, dual-task baseline in %, name + date on print/download
+- [x] 6. Minor: duplicate Simulated tag, "semi-tandem" wording, hold targets in sessions, partial week "(so far)", target line above bars, Blob charset, AI disclosure, summary.py chair cutoff .get
+- [x] 7a. pytest (171), ruff, detector (regex fallback: 0), doctor view rendered in the Node harness (Dad + a flagged case)
+- [ ] 7b. Browser pass (laptop, tablet portrait/landscape, phone, print preview) + /impeccable polish: needs the server running
+
+## Instruction pictures
+
+- [x] scripts/make_images.py: Grok Imagine via urllib, shared style prompt, optional names, extension from the image bytes
+- [x] Balance stances use a feet-from-above prompt; sit-to-stand is halfway up, arms crossed
+- [x] Check-in: each step's local picture beside the instruction, plus the exercise pictures

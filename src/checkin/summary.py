@@ -26,16 +26,23 @@ FORBIDDEN = re.compile(
     r"|medicat|prescri|dosage",
     re.IGNORECASE,
 )
+# Words the family never sees (CLAUDE.md): an AI summary using them falls back to the template.
+JARGON = re.compile(r"STEADI|\bTUG\b|timed up|tandem|sway|baseline|dual.task", re.IGNORECASE)
 FAMILY_NOTE = "This is fall-risk screening, not a diagnosis. A doctor can do a full fall-risk assessment."
+# The Home cards' plain words, so the family summary matches the page.
+AREA = {"tug_s": "standing up and walking", "chair_stands": "leg strength", "tandem_s": "balance",
+        "dual_task_cost_pct": "walking while naming animals"}
+YES = {"fallen": "has had a fall in the past year", "unsteady": "feels unsteady when standing or walking",
+       "worried": "worries about falling"}
 SYSTEM = (
     "You write a short update for the family of an older adult who does a weekly fall-risk screening at home "
     "with the CDC's STEADI tests. Write 3 to 5 plain sentences a non-expert can follow: how the latest "
-    "check-in went, any change from their usual results, and how the exercises are going. Use everyday words "
-    "(the walk test, the chair test, the balance test) and never write STEADI, TUG, tandem, sway, baseline, or "
-    "dual-task. Write dates as month and day, like September 26. Use only facts and numbers from the summary "
-    "you are given, and no other numbers. Say 'flags increased fall risk' for a flag. Never diagnose, predict "
-    "whether or when someone will fall, promise that falls will be prevented, or give medical or medication "
-    "advice. If anything is flagged, suggest mentioning it at the next doctor's visit."
+    "check-in went, any change from their usual results, and how the exercises are going. Use the family's "
+    "words (standing up and walking, leg strength, balance) and never write STEADI, Timed Up and Go, TUG, tandem, "
+    "sway, baseline, or dual-task. Write dates as month and day, like September 26. Use only facts and numbers "
+    "from the summary you are given, and no other numbers. Say 'flags increased fall risk' for a flag. Never "
+    "diagnose, predict whether or when someone will fall, promise that falls will be prevented, or give medical "
+    "or medication advice. If anything is flagged, suggest mentioning it at the next doctor's visit."
 )
 
 
@@ -43,12 +50,15 @@ def _num(v, unit=""):
     return "not measured" if v is None else f"{round(v, 1):g}{unit}"
 
 
-def _change(changes, key, unit=""):
+def _change(changes, key):
     c = (changes or {}).get(key)
     if not c:
         return ""
-    sign = "+" if c["change"] > 0 else ""
-    return f"; baseline {_num(c['baseline'], unit)}, change {sign}{_num(c['change'], unit)}"
+    unit = steadi.TRACKED[key][1]
+    return f"; baseline {steadi.fmt(c['baseline'], unit)}, change {steadi.fmt(c['change'], unit, change=True)}"
+
+
+CORE_NAMES = {"tug_s": "Timed Up and Go", "chair_stands": "chair stand", "tandem_s": "balance"}
 
 
 def doctor(dash):
@@ -71,20 +81,36 @@ def doctor(dash):
     lines.append("Key questions: " + ("yes to: " + "; ".join(yes) + "." if yes else "no to all three."))
 
     m, cut, ch = latest["metrics"], latest["cutoffs"], latest.get("changes")
+    steps = latest.get("steps") or {}  # which steps ran, and how they ended
     flags = [f["text"] for f in latest["flags"]]
+    missing = [CORE_NAMES[k] for k in steadi.unmeasured(m)]
+    if flags:
+        status = "flags increased fall risk: " + "; ".join(flags) + "."
+    elif latest.get("declines"):
+        status = "no STEADI flags; a sustained change from baseline (below)."
+    else:
+        status = "no STEADI flags" + (" among the tests measured." if missing else ".")
+    if missing:
+        status += " Not measured: " + ", ".join(missing) + "."
+    tug = (f"did not finish within {steadi.TUG_TIMEOUT_S:g} s" if m.get("tug_timed_out") else _num(m["tug_s"], " s"))
+    chair = ("0 stands (stopped: needed arms)" if (steps.get("chair_stand") or {}).get("arms_used")
+             else "not measured" if m["chair_stands"] is None else f"{_num(m['chair_stands'])} stands")
+    chair_rule = (f"below {cut['chair_stands']} is below average for {cut['chair_label']}" if cut.get("chair_stands")
+                  else "no STEADI line without age and sex")
+
+    def stance(s):  # stances after the first one not held for 10 s aren't tried (STEADI)
+        return "not tried" if steps and f"balance_{s}" not in steps else _num(m[f"{s}_s"], " s")
+
     lines += [
         "",
-        f"Latest check-in, {latest['date'][:10]}: "
-        + ("flags increased fall risk: " + "; ".join(flags) + "." if flags else "no STEADI flags."),
-        f"- Timed Up and Go: {_num(m['tug_s'], ' s')} (flags at {_num(cut['tug_s'], ' s')} or more"
-        f"{_change(ch, 'tug_s', ' s')})",
+        f"Latest check-in, {latest['date'][:10]}: {status}",
+        f"- Timed Up and Go: {tug} (flags at {_num(cut['tug_s'], ' s')} or more{_change(ch, 'tug_s')})",
         f"- Timed Up and Go while naming animals: {_num(m['dual_tug_s'], ' s')}; dual-task cost "
-        f"{_num(m['dual_task_cost_pct'], '%')}{_change(ch, 'dual_task_cost_pct', ' points')}",
-        f"- 30-second chair stand: {_num(m['chair_stands'])} stands (below {cut['chair_stands']} is below average "
-        f"for {cut['chair_label']}{_change(ch, 'chair_stands')})",
-        f"- Balance stances held (target 10 s): feet together {_num(m['feet_together_s'], ' s')}, "
-        f"semi-tandem {_num(m['semi_tandem_s'], ' s')}, tandem {_num(m['tandem_s'], ' s')} "
-        f"(tandem under {_num(cut['tandem_s'], ' s')} flags{_change(ch, 'tandem_s', ' s')})",
+        f"{_num(m['dual_task_cost_pct'], '%')}{_change(ch, 'dual_task_cost_pct')}",
+        f"- 30-second chair stand: {chair} ({chair_rule}{_change(ch, 'chair_stands')})",
+        f"- Balance stances held (target 10 s): feet together {stance('feet_together')}, "
+        f"semi-tandem {stance('semi_tandem')}, tandem {stance('tandem')} "
+        f"(tandem under {_num(cut['tandem_s'], ' s')} flags{_change(ch, 'tandem_s')})",
     ]
     declines = [d["text"] for d in latest.get("declines", [])]
     lines.append("Sustained declines from baseline: " + ("; ".join(declines) + "." if declines else "none."))
@@ -113,19 +139,50 @@ def doctor(dash):
     return "\n".join(lines)
 
 
+def family_items(latest):
+    """The check-in's flags and sustained declines in the Home cards' plain words."""
+    m, c = latest["metrics"], latest["cutoffs"]
+    items = []
+    for f in latest["flags"]:
+        if f["id"] == "key_questions":
+            yes = [t for k, t in YES.items() if latest["key_questions"].get(k)]
+            items.append("Answered yes: " + "; ".join(yes) + ".")
+        elif f["id"] == "tug":
+            took = (f"wasn't finished within {steadi.TUG_TIMEOUT_S:g} seconds" if m.get("tug_timed_out")
+                    else f"took {_num(m['tug_s'])} seconds")
+            items.append(f"Standing up and walking {took}; {_num(c['tug_s'])} seconds or longer is flagged.")
+        elif f["id"] == "chair_stand":
+            group = re.sub(r"\s*\(.*\)$", "", c["chair_label"])  # drop "(the oldest STEADI group)"
+            items.append(f"Leg strength: {m['chair_stands']} stand-ups from a chair in 30 seconds, "
+                         f"fewer than average for {group}.")
+        elif f["id"] == "balance":
+            # The stance that broke; after it the check-in stops, so a later 0 s means "not tried".
+            broke = next((s for s in steadi.STANCES if m.get(f"{s}_s") is not None and m[f"{s}_s"] < 10), "tandem")
+            held = f"Balance: held {steadi.STANCE_WORDS[broke]} for {_num(m[f'{broke}_s'])} seconds"
+            items.append(f"{held}; under {_num(c['tandem_s'])} seconds is flagged." if broke == "tandem"
+                         else f"{held} (the goal is 10), so the hardest position wasn't tried.")
+        else:
+            items.append(f["text"])
+    return items + [f"{AREA[d['id']].capitalize()} has been worse than usual two check-ins in a row."
+                    for d in latest.get("declines", [])]
+
+
 def template(dash):
-    """Family summary with no AI: the saved alert text, or an all-clear, plus exercise."""
+    """Family summary with no AI: the flags in plain words, or an all-clear, plus exercise."""
     latest, a = dash["latest"], dash["adherence"]
     if not latest:
         return "No check-in yet."
     d = datetime.fromisoformat(latest["date"])
     when = f"{d:%A}, {d:%B} {d.day}"  # "Saturday, September 26"
     if latest["alert"]:
-        al = latest["alert"]
-        parts = [f"The check-in on {when} flags increased fall risk: " + "; ".join(al["items"]) + ".", al["advice"]]
+        # A decline is our change-from-usual rule, not a screening flag: say what changed, not "flags".
+        found = "flags increased fall risk" if latest["flags"] else "showed a change from usual"
+        parts = [f"The check-in on {when} {found}.", *family_items(latest), latest["alert"]["advice"]]
     else:
-        parts = [f"The check-in on {when} raised no flags."]
-    parts.append(f"Exercises done on {a['last_7_days']} of the target {a['target_days_per_week']} days this week.")
+        missing = steadi.unmeasured(latest["metrics"])
+        parts = [f"The check-in on {when} raised no flags" + (", but some tests weren't measured." if missing else ".")]
+    parts.append(f"Exercises done on {a['last_7_days']} of the target {a['target_days_per_week']} days "
+                 "in the past week.")
     parts.append(FAMILY_NOTE)
     return " ".join(parts)
 
@@ -134,6 +191,8 @@ def check(text, facts):
     """Why an AI summary can't be shown, or None: a forbidden claim, or a number not in the facts."""
     if FORBIDDEN.search(text):
         return "forbidden claim"
+    if JARGON.search(text):
+        return "clinical words"
     allowed = {float(n) for n in NUMBER.findall(facts)}
     invented = [n for n in NUMBER.findall(text) if float(n) not in allowed]
     return f"numbers not in the data: {', '.join(invented)}" if invented else None

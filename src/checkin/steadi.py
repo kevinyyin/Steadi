@@ -8,9 +8,16 @@ from datetime import date, timedelta
 from statistics import mean
 
 TUG_CUTOFF_S = 12.0  # STEADI: 12 s or more flags
+TUG_TIMEOUT_S = 60.0  # a walk not finished by then is flagged, not "not measured"
+CORE = ("tug_s", "chair_stands", "tandem_s")  # a check-in missing any of these can't be called clear
 TANDEM_CUTOFF_S = 10.0  # STEADI: tandem stance held under 10 s flags
 STANCES = ("feet_together", "semi_tandem", "tandem")
 STANCE_LABEL = {"feet_together": "feet together", "semi_tandem": "semi-tandem", "tandem": "tandem"}
+STANCE_WORDS = {  # what the family and the person see: no stance names
+    "feet_together": "feet together",
+    "semi_tandem": "one foot a little ahead of the other",
+    "tandem": "one foot right in front of the other",
+}
 
 # STEADI 30-second chair stand: below these counts is below average. (lowest age in band, cutoff)
 CHAIR_NORMS = {
@@ -58,6 +65,20 @@ def chair_norm(age, sex):
     return cutoff, label
 
 
+def fmt(v, unit, change=False):
+    """One number format for screen text and print: 12.4 s, 18.4%, 13; a change in a percentage is in points."""
+    if change and unit == "%":
+        unit = " points"
+    elif unit and unit != "%":
+        unit = " " + unit
+    return f"{'+' if change and v > 0 else ''}{round(v, 1):g}{unit}"
+
+
+def unmeasured(m):
+    """The core tests with no value. A walk that timed out is flagged instead, so it isn't listed."""
+    return [k for k in CORE if m.get(k) is None and not (k == "tug_s" and m.get("tug_timed_out"))]
+
+
 def metrics_from_steps(steps):
     """Flatten step results (keyed by step id) into the tracked metrics."""
     tug = (steps.get("tug") or {}).get("tug_s")
@@ -67,6 +88,7 @@ def metrics_from_steps(steps):
         "dual_tug_s": dual,
         "dual_task_cost_pct": round((dual - tug) / tug * 100, 1) if tug and dual else None,
         "chair_stands": (steps.get("chair_stand") or {}).get("stands"),
+        "tug_timed_out": (steps.get("tug") or {}).get("method") == "timeout" and "error" not in steps["tug"],
     }
     failed = False  # STEADI stops at the first stance that breaks; later stances count as 0 s
     for s in STANCES:
@@ -85,7 +107,10 @@ def flags_for(profile, m):
     yes = [text for key, text in KEY_QUESTIONS.items() if profile.get(key)]
     if yes:
         flags.append({"id": "key_questions", "text": "Answered yes: " + "; ".join(yes)})
-    if m.get("tug_s") is not None and m["tug_s"] >= TUG_CUTOFF_S:
+    if m.get("tug_timed_out"):
+        flags.append({"id": "tug", "text": f"Timed Up and Go not finished within {TUG_TIMEOUT_S:g} s "
+                                           "(STEADI flags 12 s or more)"})
+    elif m.get("tug_s") is not None and m["tug_s"] >= TUG_CUTOFF_S:
         flags.append({"id": "tug", "text": f"Timed Up and Go took {m['tug_s']:.1f} s (STEADI flags 12 s or more)"})
     if m.get("chair_stands") is not None and profile.get("age") and profile.get("sex"):
         cutoff, label = chair_norm(profile["age"], profile["sex"])
@@ -98,9 +123,11 @@ def flags_for(profile, m):
                 }
             )
     if m.get("tandem_s") is not None and m["tandem_s"] < TANDEM_CUTOFF_S:
-        flags.append(
-            {"id": "balance", "text": f"Held the tandem stance {m['tandem_s']:.1f} s (STEADI flags under 10 s)"}
-        )
+        # Name the stance that broke: after it the check-in stops, and later stances count as 0 s.
+        broke = next(s for s in STANCES if m.get(f"{s}_s") is not None and m[f"{s}_s"] < TANDEM_CUTOFF_S)
+        held = f"Held the {STANCE_LABEL[broke]} stance {m[f'{broke}_s']:.1f} s"
+        flags.append({"id": "balance", "text": (held if broke == "tandem" else f"{held}, so tandem wasn't tried")
+                      + " (STEADI flags tandem under 10 s)"})
     return flags
 
 
@@ -132,7 +159,7 @@ def declines_for(changes, history):
                 {
                     "id": key,
                     "text": f"{label} worse than the baseline two check-ins in a row "
-                    f"({ch['baseline']:g}{unit} baseline, change {ch['change']:+g}{unit})",
+                    f"(baseline {fmt(ch['baseline'], unit)}, change {fmt(ch['change'], unit, change=True)})",
                 }
             )
     return out
@@ -310,10 +337,29 @@ def trends(person):
     return {
         "dates": [c["date"][:10] for c in cs],
         "levels": [c["level"] for c in cs],
+        "flags": [[f["id"] for f in c["flags"]] for c in cs],
+        "declines": [[d["id"] for d in c.get("declines", [])] for c in cs],
+        "partial": [bool(unmeasured(c["metrics"])) for c in cs],  # a core test missing: not "clear"
         "simulated": [bool(c.get("simulated")) for c in cs],
         "series": series,
-        "cutoffs": {k: latest_cut.get(k) for k in ("tug_s", "chair_stands", "tandem_s")},
+        "baseline": {k: [((c.get("changes") or {}).get(k) or {}).get("baseline") for c in cs] for k in TRACKED},
+        "stances_held": [stances_held(c["metrics"]) for c in cs],
+        "cutoffs": {k: latest_cut.get(k) for k in ("tug_s", "chair_stands", "chair_label", "tandem_s")},
     }
+
+
+def stances_held(m):
+    """How far up the balance ladder a check-in got: 0–3 stances held for 10 s in order, or None if not measured.
+    The tandem stance is capped at its own cutoff, so this carries more than a chart of tandem seconds."""
+    held = 0
+    for s in STANCES:
+        v = m.get(f"{s}_s")
+        if v is None:
+            return None if held == 0 else held
+        if v < TANDEM_CUTOFF_S:
+            break
+        held += 1
+    return held
 
 
 def dashboard(person, today):

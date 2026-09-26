@@ -14,7 +14,7 @@ Two links, both plain text so you can watch them with `arduino-cli monitor` or `
 | `CUE start` | Two rising beeps: this is the "Go" cue; timing starts when it's sent |
 | `CUE stop` | One long low beep: the step is over |
 | `CUE done` | Three-note rising melody: the session is saved |
-| `CUE error` | Three quick low beeps: something went wrong (step timed out, session cancelled) |
+| `CUE error` | Three quick low beeps: something went wrong (step timed out, sensor dropped out); a cancel plays `stop` |
 | `CUE rep` | One short beep: an exercise rep was counted |
 | `LED off` / `LED blue` / `LED green` / `LED amber` / `LED red` | Blue = session in progress; green/amber/red = the fall-risk level of the last check-in |
 

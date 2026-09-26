@@ -29,6 +29,7 @@ TRACKED = {  # metric: (label, unit, worse direction, threshold, threshold is re
     "chair_stands": ("Chair stands", "", -1, 2.0, False),
     "tandem_s": ("Tandem stance", "s", -1, 3.0, False),
 }
+NOTE = "Fall-risk screening with the CDC's STEADI tests. A doctor can do a full fall-risk assessment."
 KEY_QUESTIONS = {
     "fallen": "fallen in the past year",
     "unsteady": "feels unsteady when standing or walking",
@@ -159,7 +160,7 @@ def alert_for(name, level, flags, declines):
         "title": f"{name}: this check-in flags increased fall risk",
         "items": [f["text"] for f in flags] + [d["text"] for d in declines],
         "advice": advice,
-        "note": "Fall-risk screening with the CDC's STEADI tests. A doctor can do a full fall-risk assessment.",
+        "note": NOTE,
     }
 
 

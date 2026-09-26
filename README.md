@@ -30,7 +30,7 @@ Every device sits behind the same interface, so mix and match:
 | `csv:data/recordings/FILE.csv` | either | Replay a real recorded session through the live dashboard |
 | `sim` | `serial` | Test the Arduino on its own |
 
-Settings are flags or environment variables, never code: `--udp-port` / `CHECKIN_UDP_PORT` (default 4210), `--serial-port` / `CHECKIN_SERIAL_PORT`, `--port` (default 8000), `--data` (default `data/`).
+Settings are flags or environment variables, never code: `--udp-port` / `CHECKIN_UDP_PORT` (default 4210), `--serial-port` / `CHECKIN_SERIAL_PORT`, `--port` (default 8000), `--data` (default `data/`). Optional AI family summary: `OPENAI_API_KEY` (and `CHECKIN_OPENAI_MODEL`, default `gpt-4o-mini`); without it the summary uses fixed wording and nothing leaves the laptop.
 
 ### 1. Simulator + on-screen base station
 

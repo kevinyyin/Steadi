@@ -40,6 +40,11 @@ CHECKIN_STEPS = [
     ("balance_tandem", "Balance: tandem",
      "Put one foot directly in front of the other, heel touching toe. Hold for 10 seconds."),
 ]
+HOLD_FEET = {  # exercise hold prompts: plain words, no stance names
+    "feet_together": "feet together",
+    "semi_tandem": "one foot a little ahead of the other",
+    "tandem": "one foot right in front of the other",
+}
 
 
 class Busy(Exception):
@@ -276,9 +281,9 @@ class Controller:
                 "Each beep is one rep.", sts["reps"])
         for i in range(bal["holds"]):
             sid = f"hold_{bal['stance']}#{i + 1}"
-            label = steadi.STANCE_LABEL[bal["stance"]]
+            feet = HOLD_FEET[bal["stance"]]
             results[sid] = await self._hold(
-                sid, f"hold_{bal['stance']}", f"Stand at the counter, one hand resting on it, feet {label}. "
+                sid, f"hold_{bal['stance']}", f"Stand at the counter, one hand resting on it, {feet}. "
                 f"Hold for {bal['target_s']:g} seconds.", bal["target_s"])
         return results
 

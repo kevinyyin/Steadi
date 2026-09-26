@@ -119,3 +119,11 @@ def test_uvicorn_can_serve_the_websocket():
 def test_index_page_is_served(client):
     r = client.get("/")
     assert r.status_code == 200 and "<html" in r.text.lower()
+
+
+def test_summary_works_with_no_ai_key(client, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    s = client.get("/api/people/sim-dad/summary").json()
+    assert s["family_by"] == "template" and s["simulated"]
+    assert s["doctor"].startswith("Fall-risk screening summary")
+    assert client.get("/api/people/nobody/summary").status_code == 404

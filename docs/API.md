@@ -127,6 +127,11 @@ Everything the family view shows for one person.
 }
 ```
 
+`plan` is rebuilt from the latest check-in and the exercise logs every time it's read:
+- `sit_to_stand.sets`: 3 when chair stands are at or near the STEADI line (under it + 2) or have slipped below their baseline two check-ins in a row; otherwise 2.
+- `balance.holds`: 4 with a balance flag or a tandem stance slipping below its baseline; otherwise 2.
+- `sit_to_stand.reps` (8 to start, 10 at most) and `balance.stance` move up one step once every set or hold in the latest session hit its target, but only after 3 or more exercise days in the last 7. Otherwise they stay the same and `why` says so. Sessions shorter than 8 reps (the quick demo) don't count.
+
 `trends.cutoffs` are STEADI lines for charts: TUG flags at 12 s or more; chair stands flag below the number; tandem flags below 10 s. `adherence.weeks` covers the last 8 weeks (Monday start), oldest first. `trends.simulated` (per check-in) and `adherence.weeks[].simulated` (any simulated session that week) say which chart points to label "Simulated".
 
 ### Check-in record

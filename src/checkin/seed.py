@@ -34,7 +34,7 @@ def _steps(tug, dual, stands, tandem):
 
 
 def _exercise_log(person, when):
-    plan = steadi.make_plan(person)
+    plan = steadi.make_plan(person, when.date())
     sts, bal = plan["sit_to_stand"], plan["balance"]
     hold = min(bal["target_s"], HOLD_CAPABILITY[bal["stance"]])
     return {

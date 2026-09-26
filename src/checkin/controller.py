@@ -194,7 +194,7 @@ class Controller:
         self.busy, self._stop, self.tags = True, None, []
         self._trim(self.clock.now() - PRE_S - 1.0)
         if mode == "exercise":
-            plan = plan or steadi.make_plan(person)
+            plan = plan or steadi.make_plan(person, started.date())
             steps = self._exercise_steps(plan)
         else:
             steps = [(sid, label) for sid, label, _ in CHECKIN_STEPS]

@@ -34,10 +34,12 @@ KEY_QUESTIONS = {
     "unsteady": "feels unsteady when standing or walking",
     "worried": "worries about falling",
 }
-EXERCISE_REPS = 8
+EXERCISE_REPS = 8  # starting reps per sit-to-stand set
+MAX_REPS = 10  # Section 5: sets of 5–10
 CHAIR_LOW_MARGIN = 2  # chair stands under the STEADI line + this count as "low" for the plan
 EXERCISE_HOLD_S = 20.0
 TARGET_DAYS_PER_WEEK = 5  # "exercises most days"
+PROGRESS_MIN_DAYS = 3  # reps and stance move up only after this many exercise days in the last 7
 
 
 def chair_norm(age, sex):
@@ -184,35 +186,69 @@ def evaluate(person, metrics, when):
     }
 
 
-def next_stance(logs):
+def _days_in_last_week(logs, today):
+    return len({lg["date"][:10] for lg in logs if (today - date.fromisoformat(lg["date"][:10])).days < 7})
+
+
+def next_stance(logs, progress=True):
     """Supported-balance progression: move up a stance once every hold at the current one hits its target."""
     for log in reversed(logs):
         holds = [h for h in log.get("holds") or [] if h.get("hold_s") is not None]  # skip holds not measured
         if holds:
             stance = holds[0]["stance"]
-            if all(h["hold_s"] >= h["target_s"] for h in holds):
+            if progress and all(h["hold_s"] >= h["target_s"] for h in holds):
                 return STANCES[min(STANCES.index(stance) + 1, len(STANCES) - 1)]
             return stance
     return STANCES[0]
 
 
-def make_plan(person):
-    """Exercise plan leaning on the weakest area (Section 5): a low chair-stand score adds sit-to-stands,
-    a balance flag adds holds."""
+def next_reps(logs, progress=True):
+    """Sit-to-stand progression: one more rep per set (up to MAX_REPS) once every set of the latest session hit
+    its target. Sessions shorter than the starting reps (the 5-rep demo) and unmeasured sets are ignored."""
+    for log in reversed(logs):
+        sets = [s for s in log.get("sets") or [] if s.get("reps") is not None and s.get("target", 0) >= EXERCISE_REPS]
+        if sets:
+            target = sets[0]["target"]
+            if progress and all(s["reps"] >= s["target"] for s in sets):
+                return min(target + 1, MAX_REPS)
+            return target
+    return EXERCISE_REPS
+
+
+def make_plan(person, today=None):
+    """Exercise plan leaning on the weakest area (Section 5).
+
+    - Chair stands at or near the STEADI line, or slipping below their baseline two check-ins in a row: 3 sets.
+    - A balance flag, or the tandem stance slipping below its baseline: 4 holds.
+    - Reps and stance move up once every set or hold hit its target, but only with regular practice
+      (PROGRESS_MIN_DAYS exercise days in the last 7); otherwise the plan stays at the same level.
+    """
+    today = today or date.today()
+    logs = person["exercise"]
     latest = person["checkins"][-1] if person["checkins"] else None
-    chair_low = balance_flag = False
+    chair_low = balance_low = False
     why = "no check-in yet: the standard plan"
     if latest:
         m, cut = latest["metrics"], latest["cutoffs"].get("chair_stands")
-        chair_low = cut is not None and m.get("chair_stands") is not None and m["chair_stands"] < cut + CHAIR_LOW_MARGIN
+        declining = {d["id"] for d in latest.get("declines", [])}
+        near_line = cut is not None and m.get("chair_stands") is not None and m["chair_stands"] < cut + CHAIR_LOW_MARGIN
         balance_flag = "balance" in {f["id"] for f in latest["flags"]}
-        why = "; ".join(
-            [text for on, text in [(chair_low, "more sit-to-stands: chair stands are at or near the STEADI line"),
-                                   (balance_flag, "more balance holds: the tandem stance was under 10 s")] if on]
-        ) or "no weak area in the latest check-in: the standard plan"
+        chair_low = near_line or "chair_stands" in declining
+        balance_low = balance_flag or "tandem_s" in declining
+        reasons = [
+            (near_line, "more sit-to-stands: chair stands are at or near the STEADI line"),
+            (chair_low and not near_line, "more sit-to-stands: chair stands have slipped below their baseline"),
+            (balance_flag, "more balance holds: the tandem stance was under 10 s"),
+            (balance_low and not balance_flag, "more balance holds: the tandem stance has slipped below its baseline"),
+        ]
+        why = "; ".join(text for on, text in reasons if on) or "no weak area in the latest check-in: the standard plan"
+    days = _days_in_last_week(logs, today)
+    progress = days >= PROGRESS_MIN_DAYS
+    if logs and not progress:
+        why += f"; same level as last time: {days} of {PROGRESS_MIN_DAYS} exercise days in the last 7 needed to move up"
     return {
-        "sit_to_stand": {"sets": 3 if chair_low else 2, "reps": EXERCISE_REPS},
-        "balance": {"stance": next_stance(person["exercise"]), "holds": 4 if balance_flag else 2,
+        "sit_to_stand": {"sets": 3 if chair_low else 2, "reps": next_reps(logs, progress)},
+        "balance": {"stance": next_stance(logs, progress), "holds": 4 if balance_low else 2,
                     "target_s": EXERCISE_HOLD_S},
         "why": why,
     }
@@ -236,8 +272,7 @@ def adherence(logs, today, weeks=8):
                 "simulated": any(lg.get("simulated") for lg in week),
             }
         )
-    recent = {lg["date"][:10] for lg in logs if (today - date.fromisoformat(lg["date"][:10])).days < 7}
-    return {"target_days_per_week": TARGET_DAYS_PER_WEEK, "weeks": out, "last_7_days": len(recent)}
+    return {"target_days_per_week": TARGET_DAYS_PER_WEEK, "weeks": out, "last_7_days": _days_in_last_week(logs, today)}
 
 
 def trends(person):
@@ -263,7 +298,7 @@ def dashboard(person, today):
         "level": latest["level"] if latest else None,
         "alert": latest["alert"] if latest else None,
         "trends": trends(person),
-        "plan": make_plan(person),
+        "plan": make_plan(person, today),
         "adherence": adherence(person["exercise"], today),
         "exercise": person["exercise"][-10:],
     }

@@ -146,3 +146,44 @@ def test_dashboard_bundles_everything_the_page_shows():
     d = steadi.dashboard(p, date(2026, 9, 26))
     assert set(d) == {"person", "latest", "level", "alert", "trends", "plan", "adherence", "exercise"}
     assert d["trends"]["series"]["chair_stands"] == [9] and d["trends"]["cutoffs"]["chair_stands"] == 11
+
+
+TODAY = date(2026, 9, 26)
+
+
+def session(day, reps=8, target=8, stance="feet_together", hold=20.0):
+    """One exercise log from September `day`: two sets and two supported holds."""
+    return {"date": f"2026-09-{day:02d}T09:00:00", "sets": [{"reps": reps, "target": target}] * 2,
+            "holds": [{"stance": stance, "hold_s": hold, "target_s": 20.0}] * 2}
+
+
+def plan_for(*logs, p=None):
+    p = p or person()
+    p["exercise"] = list(logs)
+    return steadi.make_plan(p, TODAY)
+
+
+def test_reps_go_up_once_every_set_hits_its_target():
+    reps = lambda *logs: plan_for(*logs)["sit_to_stand"]["reps"]  # noqa: E731
+    assert reps(session(22), session(24), session(25)) == 9
+    assert reps(session(22), session(24), session(25, reps=6)) == 8  # missed the target: same reps
+    assert reps(session(22), session(24), session(25, reps=10, target=10)) == 10  # sets of 5–10 at most
+    assert reps(session(22), session(24, reps=9, target=9), session(25, reps=5, target=5)) == 10  # a demo doesn't count
+
+
+def test_a_slow_decline_adds_exercise_for_that_area():
+    p = person(age=62, sex="female")  # STEADI line 12: 14 stands is not near it, so only the decline can add a set
+    for i, stands in enumerate([17, 17, 17, 14, 14]):
+        add(p, metrics(stands=stands), i)
+    assert [d["id"] for d in p["checkins"][-1]["declines"]] == ["chair_stands"]
+    plan = steadi.make_plan(p, TODAY)
+    assert plan["sit_to_stand"]["sets"] == 3 and "slipped below their baseline" in plan["why"]
+
+
+def test_missed_sessions_pause_progression():
+    plan = plan_for(session(10), session(25))  # every target hit, but 1 exercise day in the last 7
+    assert plan["sit_to_stand"]["reps"] == 8 and plan["balance"]["stance"] == "feet_together"
+    assert "1 of 3 exercise days" in plan["why"]
+    plan = plan_for(session(10), session(23), session(24), session(25))  # 3 days: move up
+    assert plan["sit_to_stand"]["reps"] == 9 and plan["balance"]["stance"] == "semi_tandem"
+    assert "exercise days" not in plan["why"]

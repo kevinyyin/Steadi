@@ -93,7 +93,8 @@ function renderState(s) {
   }
   const busy = s.phase === "running";
   for (const id of ["start-checkin", "start-exercise", "start-quick"]) $(id).disabled = busy;
-  $("cancel").disabled = $("arms-used").disabled = !busy;
+  $("cancel").disabled = !busy;
+  $("arms-used").disabled = !s.steps.some((x) => x.id === "chair_stand" && x.status === "running");
 }
 
 function connect() {

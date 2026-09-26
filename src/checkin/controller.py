@@ -85,7 +85,11 @@ class Controller:
         self._pressed = True
 
     def stop(self, reason):
-        """'arms_used' during the chair stand records 0 (STEADI); 'cancel' ends the session without saving."""
+        """'arms_used' during the chair stand records 0 (STEADI); 'cancel' ends the session without saving.
+        'arms_used' at any other time is ignored, so a mis-tap can't zero the next chair stand."""
+        chair_running = any(s["id"] == "chair_stand" and s["status"] == "running" for s in self.state["steps"])
+        if reason == "arms_used" and not chair_running:
+            return
         if self.busy:
             self._stop = reason
 

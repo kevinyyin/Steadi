@@ -4,7 +4,7 @@ Plan: docs/superpowers/plans/2026-09-26-fall-checkin-mvp.md
 
 - [x] 1. Project scaffold and simulator
 - [x] 2. Step scoring (signals)
-- [ ] 3. STEADI logic
+- [x] 3. STEADI logic
 - [ ] 4. People store and recordings
 - [ ] 5. Clock and motion sources
 - [ ] 6. Base stations and protocol

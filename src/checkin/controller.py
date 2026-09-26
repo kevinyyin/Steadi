@@ -21,6 +21,7 @@ TUG_TIMEOUT_S = 60.0
 BALANCE_S = 10.0
 SET_IDLE_S = 8.0  # a sit-to-stand set ends after this long without a new rep
 SET_MAX_S = 120.0
+PRESS_GUARD_S = 1.0  # a press this soon after the last one taken is a double-tap: ignored
 SETTLE_S = 1.0  # wait up to this long for late samples (Wi-Fi batching, phone polling) before scoring a step
 
 CHECKIN_STEPS = [
@@ -59,6 +60,7 @@ class Controller:
         self.busy = False
         self._pending = None
         self._pressed = False
+        self._last_press = float("-inf")
         self._stop = None
         self._rate_t0, self._rate_n = self.clock.now(), 0
         self._last_emit = 0.0
@@ -170,8 +172,14 @@ class Controller:
         self.state["led"] = color
 
     def _take_press(self):
+        """A press since the last call. One within PRESS_GUARD_S of the last press taken is ignored, so a
+        double-tap can't both start a step and stop it (a 0.05 s TUG, a stance "broken" at Go)."""
         pressed, self._pressed = self._pressed, False
-        return pressed
+        now = self.clock.now()
+        if not pressed or now - self._last_press < PRESS_GUARD_S:
+            return False
+        self._last_press = now
+        return True
 
     def _check_cancel(self):
         if self._stop == "cancel":

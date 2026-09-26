@@ -219,3 +219,15 @@ def test_arms_used_outside_the_chair_stand_is_ignored(tmp_path):
     ctl, source, base, store, person = make(tmp_path)
     record = drive(ctl, ctl.run_session(person["id"], "checkin"), on_running=mis_tap)
     assert record["steps"]["chair_stand"] == {"stands": source.truth["chair_stand"]["stands"], "arms_used": False}
+
+
+def test_a_double_tap_on_go_is_not_a_second_press(tmp_path):
+    def double_tap(ctl, running):
+        if running in ("tug", "balance_feet_together") and ctl.state["live"].get("elapsed_s", 0) <= 0.3:
+            ctl.press()
+
+    ctl, source, base, store, person = make(tmp_path)
+    record = drive(ctl, ctl.run_session(person["id"], "checkin"), on_running=double_tap)
+    assert record["steps"]["tug"]["method"] == "sensor"
+    assert abs(record["metrics"]["tug_s"] - source.truth["tug"]["tug_s"]) < 0.5
+    assert record["metrics"]["feet_together_s"] == 10.0 and record["flags"] == []

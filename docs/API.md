@@ -75,7 +75,7 @@ Sends the state on connect, then events:
 |---|---|---|
 | `POST /api/session` | `{"person_id": "guest", "mode": "checkin"}` | `202`; `409` if a session is running; `404` unknown person; `400` check-in without age and sex |
 | `POST /api/session` | `{"person_id": "guest", "mode": "exercise", "plan": {...}}` | `plan` is optional (default: the person's plan, below); `422` if out of range |
-| `POST /api/button` | none | The on-screen button: starts the waiting step; during a TUG it stops the clock (stopwatch fallback); during a balance stance it marks the stance as broken |
+| `POST /api/button` | none | The on-screen button: starts the waiting step; during a TUG it stops the clock (stopwatch fallback); during a balance stance it marks the stance as broken. A press within 1 s of the last one taken is ignored (double-tap) |
 | `POST /api/stop` | `{"reason": "arms_used"}` | While the chair stand is running: stop and record 0 stands (STEADI). Ignored at any other time |
 | `POST /api/stop` | `{"reason": "cancel"}` | End the session; nothing is saved |
 

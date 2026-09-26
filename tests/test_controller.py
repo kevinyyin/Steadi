@@ -231,3 +231,18 @@ def test_a_double_tap_on_go_is_not_a_second_press(tmp_path):
     assert record["steps"]["tug"]["method"] == "sensor"
     assert abs(record["metrics"]["tug_s"] - source.truth["tug"]["tug_s"]) < 0.5
     assert record["metrics"]["feet_together_s"] == 10.0 and record["flags"] == []
+
+
+def test_cancel_while_waiting_for_late_data_saves_nothing(tmp_path):
+    ctl, source, base, store, person = make(tmp_path, source_cls=type("Late", (LateSource,), {"LAG_S": 0.7}))
+    score = ctl._score
+
+    async def cancel_then_score(*args):  # the helper cancels just as the last hold's time is up
+        ctl.stop("cancel")
+        return await score(*args)
+
+    ctl._score = cancel_then_score
+    plan = {"sit_to_stand": {"sets": 0, "reps": 5},
+            "balance": {"stance": "feet_together", "holds": 1, "target_s": 20.0}}
+    assert drive(ctl, ctl.run_session(person["id"], "exercise", plan)) is None
+    assert store.get(person["id"])["exercise"] == [] and ctl.state["phase"] == "stopped"

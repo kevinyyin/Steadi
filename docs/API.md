@@ -179,7 +179,7 @@ Everything the family view shows for one person.
 }
 ```
 
-A set or hold whose sensor data dropped out is saved as its error result (`{"error": ..., "target": 5}`, no `reps` or `hold_s`): it counts as "not measured" and adds nothing to adherence or stance progression.
+A set or hold whose sensor data dropped out is saved without its count: a set as `{"error": ..., "target": 5}` (no `reps`), a hold as `{"error": ..., "stance", "method", "target_s"}` (no `hold_s`): it counts as "not measured" and adds nothing to adherence or stance progression.
 
 Balance holds move up a stance (feet together → semi-tandem → tandem) once every hold in the latest session reaches its target.
 

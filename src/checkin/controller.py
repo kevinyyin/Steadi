@@ -148,6 +148,7 @@ class Controller:
         window `checkin replay` does: from 1 s before "Go" to t_end."""
         deadline = self.clock.now() + SETTLE_S
         while self.clock.now() < deadline and self.samples()[:, 0].max(initial=-np.inf) < t_end:
+            self._check_cancel()
             await self.tick()
         t, acc, gyro = self._window(t_go)
         keep = t <= t_end

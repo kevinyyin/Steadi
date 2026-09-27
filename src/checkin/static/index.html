@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fall-risk check-in</title>
+<title>Steadi</title>
 <!-- Every value here comes from the API in docs/API.md, so this page can be replaced. Offline: no network assets. -->
 <link rel="preload" href="/static/vendor/archivo.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -137,8 +137,13 @@
 
   /* ---- fixed top bar: person on the left, the three views on the right ----------------------------- */
   .bar { position: sticky; top: 0; z-index: 20; background: var(--paper); border-bottom: 1px solid var(--line); }
-  .bar .wrap { min-height: var(--bar-h); padding-block: 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px 20px; }
-  .who { display: flex; align-items: center; gap: 4px 12px; min-width: 0; flex-wrap: wrap; }
+  .bar .wrap { min-height: var(--bar-h); padding-block: 8px; display: flex; align-items: center; justify-content: flex-start; gap: 8px 20px; }
+  .who { display: flex; align-items: center; gap: 4px 12px; min-width: 0; flex: 1 1 auto; flex-wrap: wrap; }
+  .brand {
+    font-weight: 800; font-stretch: 108%; font-size: 1.2rem; color: var(--ink);
+    text-decoration: none; flex-shrink: 0; min-height: 48px; display: inline-flex; align-items: center;
+  }
+  .brand:hover { color: var(--blue); }
   #person {
     font: inherit; font-size: clamp(1.25rem, 1rem + 0.9vw, 1.6rem); font-weight: 800; font-stretch: 108%;
     color: var(--ink); background: transparent no-repeat right 2px center / 20px 20px;
@@ -147,7 +152,7 @@
     min-height: 48px; padding: 4px 32px 4px 0; max-width: 100%; min-width: 0; text-overflow: ellipsis; cursor: pointer;
   }
   #person:hover { border-bottom-color: var(--blue); }
-  .views { display: flex; gap: 4px; flex-shrink: 0; }
+  .views { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
   .views a {
     display: inline-flex; align-items: center; min-height: 52px; padding: 0 18px; border-radius: 3px;
     font-weight: 700; color: var(--ink); text-decoration: none; white-space: nowrap;
@@ -460,12 +465,13 @@
   }
   @media (max-width: 960px) {
     :root { --bar-h: 116px; }
-    .bar .wrap { flex-wrap: wrap; align-content: center; }
-    .who { width: 100%; flex-wrap: nowrap; }
+    .bar .wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; align-content: center; }
+    .brand { grid-column: 1; grid-row: 2; }
+    .who { grid-column: 1 / -1; grid-row: 1; width: 100%; flex-wrap: nowrap; }
+    .views { grid-column: 2; grid-row: 2; width: 100%; margin-left: 0; }
     #person { flex: 0 1 auto; }
     #person-tag, #edit-profile, #add-person { flex-shrink: 0; }
     #edit-profile { margin-left: auto; }
-    .views { width: 100%; }
     .views a { flex: 1 1 0; justify-content: center; padding-inline: 6px; }
     /* Results table as stacked rows: each cell says what it is. */
     .results thead { display: none; }
@@ -495,12 +501,13 @@
 THESIS: One dashboard, three audiences. Home answers "is everything all right?" in one plain sentence; Check-in is one instruction and one Button; For the doctor holds every clinical number. Refuses the everything-on-one-page dashboard.
 OWN-WORLD: Ink #080912, royal blue #2a4093 as the only accent (primary actions, cutoff lines), cool grey #eef0f4 and white fields; Archivo variable in sentence case, bold not wide; plain ink section headings above 1px rules; 3px corners. Calm over loud: levels are named by what to do (No flags / Mention to the doctor / Talk to a doctor soon). Azure LED and green/amber/red are reserved for state.
 STORY: The family reads the answer and three plain cards, starts a check-in; the older adult follows one instruction at a time and presses the Button; the doctor gets the numbers and a printout.
-FIRST VIEWPORT: White fixed bar (person left; Home, Check-in, For the doctor right); level tile beside the answer sentence at display size; Start check-in and Start exercise under it.
+FIRST VIEWPORT: White fixed bar (Steadi and the person left; Home, Check-in, For the doctor right); level tile beside the answer sentence at display size; Start check-in and Start exercise under it.
 FORM: calmer pass after the 2026-09-26 critique (was a festival-lineup poster): sentence case, no brackets or rolling labels, numbers capped below the answer; absence still drawn on purpose.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
 <header class="bar">
-  <div class="wrap">
+    <div class="wrap">
+    <a class="brand" href="#home">Steadi</a>
     <div class="who">
       <label for="person" class="visually-hidden">Person</label>
       <select id="person"></select>
@@ -603,7 +610,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
   <section id="ask" class="block" aria-labelledby="ask-h" hidden>
     <div class="wrap">
-      <div class="sec-head"><h2 id="ask-h" class="label">Ask Steady</h2><span id="ask-tag"></span></div>
+      <div class="sec-head"><h2 id="ask-h" class="label">Ask Steadi</h2><span id="ask-tag"></span></div>
       <form id="ask-form" class="ask-form">
         <label for="ask-q" class="visually-hidden">Your question</label>
         <input id="ask-q" name="q" maxlength="200" autocomplete="off" required

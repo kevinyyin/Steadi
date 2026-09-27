@@ -1,4 +1,4 @@
-"""The one switch for every Grok call: the family summary, Ask Steady, speech to text, and any later AI feature.
+"""The one switch for every Grok call: the family summary, Ask Steadi, speech to text, and any later AI feature.
 
 Grok is on only with an XAI_API_KEY, without CHECKIN_AI=off, and while the dashboard's switch is on.
 Anything that calls xAI checks ai_enabled() first and falls back to its offline version when it's False.

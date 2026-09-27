@@ -1,6 +1,6 @@
-# Fall-risk check-in
+# Steady
 
-**A belt, one button, and a family dashboard that bring the CDC's STEADI fall-risk screening into the home, then coach the exercises and count every rep.**
+**Steady: a belt, one button, and a family dashboard that bring the CDC's STEADI fall-risk screening into the home, then coach the exercises and count every rep.**
 
 This is fall-risk screening: it flags increased fall risk and tracks change from baseline. It does not diagnose anything, predict when someone will fall, or guarantee prevention. We have not run a trial.
 
@@ -9,7 +9,7 @@ This is fall-risk screening: it flags increased fall risk and tracks change from
 ## The problem
 
 - **About 1 in 4 U.S. adults aged 65+ report a fall each year** (14 million+), and falls are the leading cause of injury death in that age group ([CDC](https://www.cdc.gov/falls/)).
-- **Alert pendants and watch fall detection only act after the fall.** In one study of the oldest adults, 80% of those with a personal alarm who fell alone and couldn't get up didn't use it.
+- **Alert pendants and watch fall detection only act after the fall, and often go unused.** In a UK cohort of people over 90, the person had a call alarm in 99% of falls where they were alone and couldn't get up, but didn't use it in 80% of those falls ([Fleming & Brayne, BMJ 2008](https://doi.org/10.1136/bmj.a2227)).
 - **The CDC already has a prevention playbook, [STEADI](https://www.cdc.gov/steadi/)**: *screen* with three key questions, *assess* gait, strength, and balance with the Timed Up and Go, the 30-second chair stand, and the 4-stage balance test, then *intervene*, including exercise. It is built for a clinic visit, so at home it rarely happens and nobody tracks it between visits.
 - **Exercise works:** a Cochrane review of 108 trials (23,407 people, average age 76) found exercise reduces the rate of falls by about 23%, with high-certainty evidence ([Sherrington et al. 2019](https://doi.org/10.1002/14651858.CD012424.pub2)). A pamphlet doesn't tell the family whether the exercises happened.
 
@@ -73,7 +73,7 @@ flowchart LR
     vbase["On-screen base station"] <--> ctl
 
     api <-->|"HTTP + WebSocket, local network"| tablet["Family dashboard (tablet browser)"]
-    steadi -.->|"optional: numbers only, no name"| grok["xAI Grok API"]
+    api -.->|"optional family summary: numbers only, no name"| grok["xAI Grok API"]
 ```
 
 - **The laptop is the session controller.** For each step it sends the "Go" cue to the base station, tags the incoming motion stream with the step, scores the step when it ends, and pushes live state to the dashboard over a WebSocket.
@@ -93,7 +93,7 @@ uv run checkin serve --source sim --base virtual
 
 Open http://localhost:8000. Everything the simulated sensor produces is labelled "Simulated" on screen, in charts, and in summaries.
 
-1. **See a flag and the recovery:** pick **Simulated: Dad** in the person menu. Eight weeks of simulated check-ins show chair stands slipping from 13 to 10, two amber check-ins, an exercise plan, adherence going up to 5 days a week, and scores recovering. The history is generated on first run so it ends today (`uv run checkin seed` regenerates it).
+1. **See a flag and the recovery:** pick the simulated example person (marked Simulated) in the person menu. Eight weeks of simulated check-ins show chair stands slipping from 13 to 10, two amber check-ins, an exercise plan, adherence going up to 5 days a week, and scores recovering. The history is generated on first run so it ends today (`uv run checkin seed` regenerates it).
 2. **Run a check-in:** pick **Guest**, set age and sex in **Edit profile**, press **Start check-in**, then **We're ready: start**. Press **I'm ready** (the on-screen base-station button) at each step; the simulator acts out the step and the page plays the buzzer tones. Results, flags, and change from baseline appear when it finishes.
 3. **Exercise mode:** **Start quick exercise** runs 5 sit-to-stands, with a beep and a count per rep.
 4. **Summaries:** **Make a summary** writes one for the family and one for the doctor. Without an xAI key it uses fixed wording and nothing leaves the laptop.
@@ -143,7 +143,7 @@ src/checkin/
   sources.py      motion sources: sim, csv replay, udp (ESP32), phyphox
   base.py         base stations: virtual (on-screen) and serial (Arduino)
   sim.py          simulated lower-back IMU with known true scores
-  seed.py         the "Simulated: Dad" eight-week history
+  seed.py         the simulated eight-week example history
   store.py        people JSON and CSV recordings
   summary.py      doctor summary, family summary (Grok with guardrails, or template)
   static/         index.html, app.js, instruction pictures, vendored Chart.js and font
@@ -180,7 +180,8 @@ uv run checkin replay data/recordings/FILE.csv --age 72 --sex female   # re-scor
 
 ## Team and credits
 
-<!-- TEAM PLACEHOLDER: names, roles, links. -->
-- **Team:** _to be added_
+<!-- TEAM PLACEHOLDER: fill in the three member names, roles, and links. -->
+- **Team:** dh squad (3 members): _names to be added_
+- **Repository:** [github.com/kevinyyin/dhsquad](https://github.com/kevinyyin/dhsquad)
 - Built at HackGT for the Hardware track, the Aramco social good track, and the SpaceXAI / Grok track.
 - Clinical tests and cutoffs: CDC [STEADI](https://www.cdc.gov/steadi/). Charts: [Chart.js](https://www.chartjs.org/) (MIT). Font: Archivo (SIL Open Font License, `src/checkin/static/vendor/archivo-OFL.txt`).

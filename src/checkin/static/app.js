@@ -11,6 +11,8 @@ const CUES = {
   done: [[2093, 150], [2637, 150], [3136, 250]],
   error: [[800, 100], [0, 80], [800, 100], [0, 80], [800, 100]],
   rep: [[2500, 80]],
+  warn: [[2500, 70], [0, 70], [2500, 70], [0, 70], [2500, 70]], // swaying: helper, step closer
+  alarm: [[1000, 250], [0, 100], [1000, 250], [0, 100], [1000, 250], [0, 100], [1000, 250]], // lost balance
 };
 const VIEWS = ["home", "checkin", "doctor"];
 // Home names a level by what to do; the doctor view names the colour.
@@ -166,7 +168,7 @@ function say(text) {
 }
 
 function play(name) {
-  if (!state || state.base !== "virtual" || !audio) return; // a real base station beeps by itself
+  if (!state || state.base !== "virtual" || state.source.beeps || !audio) return; // a base station or the belt beeps itself
   let t = audio.currentTime;
   for (const [freq, ms] of CUES[name] || []) {
     if (freq) {

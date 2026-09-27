@@ -1,6 +1,6 @@
 """Base stations. Each one has:
 
-    cue(name)   start | stop | done | error | rep   (buzzer)
+    cue(name)   start | stop | done | error | rep | warn | alarm   (buzzer)
     led(color)  off | blue | green | amber | red
     pressed() -> bool   the physical button was pressed since the last call
     close()
@@ -12,7 +12,7 @@ The dashboard always shows the LED and the on-screen button; with the virtual ba
 import logging
 
 log = logging.getLogger(__name__)
-CUES = ("start", "stop", "done", "error", "rep")
+CUES = ("start", "stop", "done", "error", "rep", "warn", "alarm")
 COLORS = ("off", "blue", "green", "amber", "red")
 
 

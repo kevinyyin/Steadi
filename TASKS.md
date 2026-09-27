@@ -105,4 +105,4 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] `src/checkin/report.py`: SVG charts, PNG export, offline HTML page
 - [x] CLI `checkin validate`; tests; ruff
 - [x] docs/VALIDATION.md protocol + README pointer
-- [ ] End-to-end on simulated data; copy sample images to the project store media/validation/
+- [x] End-to-end on simulated data; copy sample images to the project store media/validation/

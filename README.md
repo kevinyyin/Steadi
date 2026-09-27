@@ -136,7 +136,7 @@ It skips cues that already have a file, so re-running only pays for new or rewor
 | Frontend | One static page: vanilla HTML/JS, vendored Chart.js 4.5.1 and Archivo font (OFL), no build step |
 | Storage | JSON files per person and CSV recordings in `data/` (git-ignored) |
 | Firmware | Arduino sketches built with `arduino-cli`: ESP32 belt (UDP), Arduino base station (serial) |
-| AI (optional) | xAI Grok chat completions for the family summary; Grok Imagine for the committed instruction pictures; xAI text to speech for the spoken cues and **Listen** |
+| AI (optional) | xAI Grok chat completions for the family summary and Ask Steady; Grok Imagine for the committed instruction pictures; xAI text to speech for the spoken cues and **Listen**; Grok speech to text to count animals named on the dual-task walk |
 | Tooling | uv, pytest (including a full simulated check-in scored against the simulator's true values), ruff |
 
 ## Repo layout
@@ -154,6 +154,7 @@ src/checkin/
   seed.py         the simulated eight-week example history
   store.py        people JSON and CSV recordings
   summary.py      doctor summary, family summary (Grok with guardrails, or template)
+  animals.py      animals named on the dual-task walk (Grok speech to text, then a local word list)
   voice.py        spoken cues and Listen (xAI text to speech, cached)
   validate.py     belt vs stopwatch/hand count: ground-truth CSV, agreement stats
   report.py       validation charts (SVG, PNG) and an offline HTML report
@@ -198,7 +199,7 @@ uv run checkin validate --simulated                             # preview on sim
 
 - No trial of this device exists. The exercise evidence comes from structured programs; our coached subset (sit-to-stands, supported balance holds) is the same type of exercise but untested as a program.
 - The scoring approach follows a 2024 lower-back IMU study that matched human raters within about 4% (TUG) and 8% (chair stands). Balance timing agreed least well in that study, so balance is our least certain score.
-- The dual-task step doesn't listen for speech yet; the helper confirms the person kept naming animals.
+- Counting the animals named on the dual-task walk is opt-in. Record it in the laptop browser at `http://localhost:8000` with a close mic; a tablet opened over the LAN cannot use the microphone. The simulator can play a bundled sample clip instead (labelled Simulated). With Grok off, no recording, or no opt-in, that line says "Animals: not counted" and the walk time is unchanged.
 - Chair-stand norms start at age 60, so younger people (including judges) are compared with the 60–64 line, labelled "the youngest STEADI group" on the dashboard.
 
 ## Team and credits

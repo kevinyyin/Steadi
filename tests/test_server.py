@@ -158,10 +158,15 @@ TRANSCRIPT = {"text": " ".join(SAID), "duration": 8.0,
 
 @pytest.fixture
 def grok_stt(monkeypatch):
+    from checkin import ai
+
     calls = []
     monkeypatch.setenv("XAI_API_KEY", "test-key")
+    monkeypatch.delenv("CHECKIN_AI", raising=False)
     monkeypatch.setattr("checkin.animals.stt", lambda data, mime: calls.append((data, mime)) or TRANSCRIPT)
-    return calls
+    ai.set_enabled(True)
+    yield calls
+    ai.set_enabled(True)
 
 
 def press_until(client, done, timeout_s=60):
@@ -201,6 +206,20 @@ def test_sample_clip_after_the_checkin_is_saved_is_labelled_simulated(client, gr
     assert grok_stt[0][1] == "audio/mpeg" and grok_stt[0][0][:3] in (b"ID3", b"\xff\xfb")
     walk = client.get("/api/people/judge/dashboard").json()["latest"]["steps"]["dual_tug"]
     assert walk["animals"]["simulated"] is True and walk["animals"]["named"] == 3
+
+
+def test_animal_count_respects_the_grok_switch(client, grok_stt):
+    client.post("/api/people", json=PROFILE)
+    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    run_to_done(client)
+    assert client.put("/api/ai", json={"on": False}).json()["on"] is False
+    assert client.get("/api/state").json()["stt"] is False  # the page stops offering it
+    assert client.post("/api/audio/dual_tug?sample=true").status_code == 503
+    assert grok_stt == []  # the switch stops the speech-to-text call
+    assert client.put("/api/ai", json={"on": True}).json()["on"] is True
+    assert client.get("/api/state").json()["stt"] is True
+    assert client.post("/api/audio/dual_tug?sample=true").status_code == 200
+    assert len(grok_stt) == 1
 
 
 def test_animals_without_a_key_are_not_counted_and_the_walk_stands(client, monkeypatch):

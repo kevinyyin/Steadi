@@ -46,7 +46,7 @@ The session controller's current state. The same object arrives over the WebSock
 | `base` | `virtual` (the page plays the tones) or `serial` (the Arduino does) |
 | `source.kind` | `sim`, `csv`, `udp`, `phyphox` |
 | `demo` | `true` when started with `checkin serve --demo` (the public demo): hide Add a person and Edit profile; `POST`/`PUT /api/people` return `403` |
-| `stt` | `true` when `XAI_API_KEY` is set: the page offers to count the animals named on the `dual_tug` walk |
+| `stt` | `true` while Grok is on (`ai_enabled()`): the page offers to count the animals named on the `dual_tug` walk. It follows the dashboard switch |
 
 Step ids: check-in `tug`, `dual_tug`, `chair_stand`, `balance_feet_together`, `balance_semi_tandem`, `balance_tandem`;
 exercise `sit_to_stand#1`, `sit_to_stand#2`, …, `hold_<stance>#1`, ….
@@ -59,7 +59,7 @@ Step results:
 | `chair_stand` | `{"stands": 12, "arms_used": false}` (`arms_used: true` records 0, per STEADI) |
 | `balance_*`, `hold_*` | `{"stance": "tandem", "hold_s": 6.6, "broke": true, "sway": 0.371, "method": "sensor" \| "button", "target_s": 10.0}` |
 | `sit_to_stand#N` | `{"reps": 5, "target": 5}` |
-| `dual_tug`, animals counted | adds `"animals": {"status": "counted", "named": 9, "repeats": 1, "list": ["cat", "..."], "per_10s": [5, 4], "seconds": 12.0, "by": "grok", "simulated": false}`; `status` is `counting` while Grok transcribes, or `not_counted` with a `reason`. No `animals` key = not counted (not opted in, no key, no microphone) |
+| `dual_tug`, animals counted | adds `"animals": {"status": "counted", "named": 9, "repeats": 1, "list": ["cat", "..."], "per_10s": [5, 4], "seconds": 12.0, "by": "grok", "simulated": false}`; `status` is `counting` while Grok transcribes, or `not_counted` with a `reason`. No `animals` key = not counted (not opted in, Grok off, no microphone) |
 | any, sensor dropped out | `{"error": "no sensor data" \| "sensor data dropped out"}` |
 
 ### `WS /ws`
@@ -82,7 +82,7 @@ Sends the state on connect, then events:
 | `POST /api/button` | none | The on-screen button: starts the waiting step; during a TUG it stops the clock (stopwatch fallback); during a balance stance it marks the stance as broken; during a sit-to-stand round it ends the round. A press within 1 s of the last one taken is ignored (double-tap), and so is one within 3 s of "Go" (a nervous "did it start?" press must not save a 2 s walk or a broken stance) |
 | `POST /api/stop` | `{"reason": "arms_used"}` | While the chair stand is running: stop and record 0 stands (STEADI). Ignored at any other time |
 | `POST /api/stop` | `{"reason": "cancel"}` | End the session; nothing is saved (the `stop` cue plays, not `error`: it's a safety stop, not a failure) |
-| `POST /api/audio/dual_tug` | the walk's audio (`Content-Type: audio/webm`, `audio/ogg`, `audio/mp4`, ...), or `?sample=true` and no body for the bundled Simulated sample clip | After the `dual_tug` walk of the running (or just-saved) check-in: Grok speech to text, then a local word list counts the animals, merged into that step's result (above) and returned. Once per walk (`409` after the first, or with no finished walk); `503` with no `XAI_API_KEY`; `413` over 10 MB. The audio is sent to xAI and never saved. Our measure, not a STEADI test; the walk time and dual-task cost never depend on it |
+| `POST /api/audio/dual_tug` | the walk's audio (`Content-Type: audio/webm`, `audio/ogg`, `audio/mp4`, ...), or `?sample=true` and no body for the bundled Simulated sample clip | After the `dual_tug` walk of the running (or just-saved) check-in: Grok speech to text, then a local word list counts the animals, merged into that step's result (above) and returned. Once per walk (`409` after the first, or with no finished walk); `503` while Grok is off (no `XAI_API_KEY`, `CHECKIN_AI=off`, or the dashboard switch); `413` over 10 MB. The audio is sent to xAI and never saved. Our measure, not a STEADI test; the walk time and dual-task cost never depend on it |
 
 Exercise `plan` limits: `sit_to_stand.sets` 0–6, `reps` 1–20; `balance.stance` one of `feet_together`, `semi_tandem`, `tandem`; `holds` 0–6; `target_s` above 0, at most 60.
 Quick demo (5 sit-to-stands, no holds):
@@ -170,7 +170,7 @@ Body `{"question": "Is he doing his exercises?"}` (1–200 characters). Grok ans
 
 ### `GET /api/ai`, `PUT /api/ai`
 
-The one switch for every Grok call (family summary, Ask Steady, and later AI features: server code checks `checkin.ai.ai_enabled()`). `GET` returns `{"on": true, "available": true, "blocked_by": null}`; `blocked_by` is `"no key"` (no `XAI_API_KEY`) or `"setting"` (`CHECKIN_AI=off`), and then `on` stays false. `PUT {"on": false}` switches it until the server restarts, and broadcasts an `ai` event.
+The one switch for every Grok call (family summary, Ask Steady, speech to text for the animal count, and reading the summary aloud: server code checks `checkin.ai.ai_enabled()`). `GET` returns `{"on": true, "available": true, "blocked_by": null}`; `blocked_by` is `"no key"` (no `XAI_API_KEY`) or `"setting"` (`CHECKIN_AI=off`), and then `on` stays false. `PUT {"on": false}` switches it until the server restarts, and broadcasts an `ai` event.
 
 ### `GET /api/people/{id}/summary/audio`
 

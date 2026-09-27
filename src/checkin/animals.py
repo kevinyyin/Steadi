@@ -1,8 +1,9 @@
 """Counting the animals named during the dual-task walk: Grok speech to text, then a local word list.
 
-Our measure, not a STEADI test. The walk time and dual-task cost never depend on it: with no key, no
+Our measure, not a STEADI test. The walk time and dual-task cost never depend on it: with Grok off, no
 microphone, or no internet the walk's result says "Animals: not counted". One call per walk; the audio is
-sent to xAI and never written to disk here. Settings: XAI_API_KEY, CHECKIN_STT_MODEL.
+sent to xAI and never written to disk here. Settings: XAI_API_KEY, CHECKIN_STT_MODEL, CHECKIN_AI (see ai.py).
+The dashboard's Grok switch stops the call.
 """
 
 import json
@@ -12,6 +13,8 @@ import re
 import urllib.request
 import uuid
 from pathlib import Path
+
+from . import ai
 
 STT_URL = "https://api.x.ai/v1/stt"
 DEFAULT_MODEL = "grok-voice-transcribe-2.0"
@@ -54,8 +57,8 @@ WORD = re.compile(r"[a-z]+")
 
 
 def available():
-    """True if a key is set; the page only offers the animal count then."""
-    return bool(os.environ.get("XAI_API_KEY"))
+    """True while Grok calls are allowed; the page only offers the animal count then."""
+    return ai.ai_enabled()
 
 
 def _singular(w):
@@ -118,8 +121,10 @@ def _form(fields, data, mime):
 
 
 def stt(data, mime, keyterms=KEYTERMS):
-    """Grok speech to text: {"text", "duration", "words": [{"text", "start", "end"}]}, or None with no key.
-    Raises on network or API errors."""
+    """Grok speech to text: {"text", "duration", "words": [{"text", "start", "end"}]}, or None when Grok is
+    off (no key, CHECKIN_AI=off, or the dashboard switch). Raises on network or API errors."""
+    if not ai.ai_enabled():
+        return None
     key = os.environ.get("XAI_API_KEY")
     if not key:
         return None
@@ -142,5 +147,6 @@ def count_audio(data, mime, transcribe=None):
     except Exception as e:  # offline, bad key, rate limit, odd reply: the walk result stands without it
         return {"status": "not_counted", "reason": f"speech to text unavailable ({type(e).__name__})"}
     if transcript is None:
-        return {"status": "not_counted", "reason": "no XAI_API_KEY"}
+        reason = "no XAI_API_KEY" if not os.environ.get("XAI_API_KEY") else "Grok is off"
+        return {"status": "not_counted", "reason": reason}
     return {**count(transcript), "by": "grok"}

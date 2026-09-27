@@ -647,8 +647,14 @@ function animalsText(step, list = false) {
   return `Named ${a.named} animal${a.named === 1 ? "" : "s"}${rep}${names}${a.simulated ? " · Simulated sample" : ""}`;
 }
 
+function animalsOffered() {
+  // aiStatus is the live switch; state.stt is the same fact on the session stream (set at startup and on each toggle).
+  if (aiStatus) return !!aiStatus.on;
+  return !!(state && state.stt);
+}
+
 function renderAnimalsOptin() {
-  const on = !!(state && state.stt);
+  const on = animalsOffered() && !!state;
   $("animals-optin").hidden = !on;
   if (!on) return;
   const sim = state.source.simulated;
@@ -659,7 +665,7 @@ function renderAnimalsOptin() {
 // Called from the "We're ready" click, so the permission prompt comes before the walk, not during it.
 async function chooseAnimals() {
   animalsMode = null;
-  if (!(state && state.stt && $("animals-on").checked)) return;
+  if (!animalsOffered() || !$("animals-on").checked) return;
   if (state.source.simulated && $("animals-sample").checked) {
     animalsMode = "sample";
   } else if (micOk()) {
@@ -1438,13 +1444,18 @@ function renderAi(s) {
   aiStatus = s;
   $("ai-line").textContent = s.on ? "Grok: on" : "Grok: off (works offline)";
   $("ai-why").textContent = s.on
-    ? "Summaries, questions, and Listen are sent to xAI without the name."
+    ? "Summaries, questions, Listen, and the animal count are sent to xAI without the name."
     : s.blocked_by === "no key" ? "No xAI key is set, so nothing leaves the laptop."
     : s.blocked_by === "setting" ? "Turned off by the CHECKIN_AI setting, so nothing leaves the laptop."
     : "Nothing leaves the laptop.";
   $("ai-toggle").hidden = !s.available || !!state?.demo; // on the public demo only the host decides
   $("ai-toggle").textContent = s.on ? "Turn Grok off" : "Turn Grok on";
   renderAsk();
+  if (!s.on) {
+    animalsMode = null; // a recording already in flight is dropped, not sent
+    if (recording) stopRecording(false);
+  }
+  renderAnimalsOptin();
 }
 
 function renderAsk() {

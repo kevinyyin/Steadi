@@ -87,7 +87,7 @@ def create_app(controller, store, today=date.today, demo=False):
 
     controller.on_event = broadcast
     controller.state["demo"] = demo  # the page hides Add a person and Edit profile
-    controller.state["stt"] = animals.available()  # the page offers the animal count only with a key
+    controller.state["stt"] = animals.available()  # the page offers the animal count only while Grok is on
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
@@ -197,8 +197,10 @@ def create_app(controller, store, today=date.today, demo=False):
     async def set_ai(body: AiIn):  # async: broadcast() isn't thread-safe
         not_in_demo()  # a public visitor can't switch Grok for everyone; the demo host uses CHECKIN_AI
         ai.set_enabled(body.on)
+        controller.state["stt"] = animals.available()
         out = ai.status()
         broadcast({"type": "ai", **out})
+        controller._emit()  # state.stt follows the switch, so the animal-count offer updates with it
         return out
 
     @app.post("/api/session", status_code=202)
@@ -234,8 +236,8 @@ def create_app(controller, store, today=date.today, demo=False):
         session_id, result = found
         if "animals" in result:
             raise HTTPException(409, "this walk's animals are already counted")
-        if not animals.available():
-            raise HTTPException(503, "animal counting is off: no XAI_API_KEY")
+        if not ai.ai_enabled():
+            raise HTTPException(503, "Grok is off")
         if int(request.headers.get("content-length") or 0) > animals.MAX_BYTES:
             raise HTTPException(413, "recording too long")
         if sample:

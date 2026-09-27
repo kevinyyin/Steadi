@@ -71,6 +71,26 @@ def test_no_key_means_no_call(monkeypatch):
     assert animals.count_audio(b"AUDIO", "audio/webm") == {"status": "not_counted", "reason": "no XAI_API_KEY"}
 
 
+def test_stt_does_not_call_when_grok_is_off(monkeypatch):
+    from checkin import ai
+
+    monkeypatch.setenv("XAI_API_KEY", "test-key")
+    monkeypatch.delenv("CHECKIN_AI", raising=False)
+    called = []
+    monkeypatch.setattr(animals.urllib.request, "urlopen", lambda *a, **k: called.append(1))
+    ai.set_enabled(False)
+    try:
+        assert not animals.available()
+        assert animals.stt(b"AUDIO", "audio/webm") is None
+        assert animals.count_audio(b"AUDIO", "audio/webm") == {"status": "not_counted", "reason": "Grok is off"}
+        monkeypatch.setenv("CHECKIN_AI", "off")
+        ai.set_enabled(True)  # the setting still blocks the call
+        assert animals.stt(b"AUDIO", "audio/webm") is None
+        assert called == []
+    finally:
+        ai.set_enabled(True)
+
+
 def test_offline_or_empty_audio_is_not_counted():
     def offline(data, mime):
         raise OSError("no network")

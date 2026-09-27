@@ -191,7 +191,7 @@ def scatter(slug, series, stats, tol, unit, what, simulated, truth_word="stopwat
     return frame(slug, f"Belt vs {truth_word}: {what}",
                  f"Scatter of {n} {what} trials, belt time against {truth_word} time, {s['within']} of {s['n']} "
                  f"within {tol:g} {unit}; mean difference {num(s['bias'], 2, True, unit)}.",
-                 f"Steady hardware check · {what}", f"Belt vs {truth_word}: {what}",
+                 f"Steadi hardware check · {what}", f"Belt vs {truth_word}: {what}",
                  f"Each dot is one trial. Dots on the dashed line mean the belt and the {truth_word} agreed exactly.",
                  "\n".join(b), legend, HONEST, simulated)
 
@@ -245,7 +245,7 @@ def bland_altman(slug, pairs, s, tol, unit, what, simulated, truth_word="stopwat
     return frame(slug, f"Bland-Altman: {what}",
                  f"Bland-Altman plot of {len(pairs)} {what} trials: mean difference {num(s['bias'], 2, True, unit)}, "
                  f"95% limits of agreement {num(s['loa'][0], 2, True)} to {num(s['loa'][1], 2, True)} {unit}.",
-                 f"Steady hardware check · {what}", f"How far apart the belt and {truth_word} are: {what}",
+                 f"Steadi hardware check · {what}", f"How far apart the belt and {truth_word} are: {what}",
                  "Bland-Altman plot: the gap between the two methods against the size of the measurement.",
                  "\n".join(b), legend, HONEST, simulated)
 
@@ -289,7 +289,7 @@ def counts(slug, groups, simulated):
     exact = sum(s["exact"] for s, _ in groups)
     legend = [("bar-accent", "belt count = hand count"), ("bar", "belt over (+) or under (−) by that many")]
     return frame(slug, "Belt vs hand count", f"Histogram of belt count minus hand count for {what}: {exact} of "
-                 f"{total} trials counted exactly.", "Steady hardware check · counting",
+                 f"{total} trials counted exactly.", "Steadi hardware check · counting",
                  "Belt vs hand count", "Each bar is how many trials landed at that difference.",
                  "\n".join(b), legend, HONEST, simulated)
 
@@ -326,7 +326,7 @@ def summary(slug, stats, simulated):
     return frame(slug, "Belt agreement summary",
                  "Share of trials where the belt agreed with the stopwatch or hand count, per test: "
                  + "; ".join(f"{s['label']} {s.get('exact', s['within'])} of {s['n']}" for s in rows if s["n"]) + ".",
-                 "Steady hardware check", "How closely the belt matches a stopwatch and a hand count",
+                 "Steadi hardware check", "How closely the belt matches a stopwatch and a hand count",
                  _people(rows) + (" · simulated sessions with made-up ground truth" if simulated else
                                   " · ground truth timed and counted by hand"),
                  "\n".join(b), legend, HONEST, simulated)
@@ -415,7 +415,7 @@ def page(pairs, stats, svgs, simulated, source):
     n_people = max((s["people"] for s in stats.values()), default=0)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Steady hardware check{' (Simulated)' if simulated else ''}</title>
+<title>Steadi hardware check{' (Simulated)' if simulated else ''}</title>
 <style>
 @font-face {{ font-family: "Archivo"; src: url(data:font/woff2;base64,{font}) format("woff2");
   font-weight: 100 900; font-stretch: 62% 125%; }}
@@ -445,7 +445,7 @@ footer {{ margin-top: 48px; border-top: 1px solid var(--line); padding-top: 16px
   font-size: 15px; }}
 </style></head>
 <body><main>
-<p class="eyebrow">Steady hardware check</p>
+<p class="eyebrow">Steadi hardware check</p>
 <h1>How closely the belt matches a stopwatch and a hand count</h1>
 <p class="lede">{total} trials{f' from {n_people} people' if n_people else ''}.
 The belt's number is re-scored from each raw recording by the same code the dashboard uses; the stopwatch and hand

@@ -146,7 +146,7 @@ def test_grok_ask_makes_no_call_when_switched_off(monkeypatch):
     assert summary.grok_ask("system", "user") is None
 
 
-def test_ask_steady_answers_from_the_results(dad):
+def test_ask_steadi_answers_from_the_results(dad):
     seen = {}
 
     def ask(system, user):
@@ -163,7 +163,7 @@ def test_ask_steady_answers_from_the_results(dad):
     assert "Simulated: Dad" not in seen["user"]  # no name is sent
 
 
-def test_ask_steady_never_sends_a_prediction_question(dad):
+def test_ask_steadi_never_sends_a_prediction_question(dad):
     def fail(system, user):
         raise AssertionError("called")
 
@@ -179,13 +179,13 @@ def test_ask_steady_never_sends_a_prediction_question(dad):
     ["He is unlikely to fall this year.", "His balance predicts no falls.", "He held it for 99 seconds.",
      "His tandem stance is fine."],
 )
-def test_ask_steady_blocks_a_reply_that_fails_the_check(dad, reply):
+def test_ask_steadi_blocks_a_reply_that_fails_the_check(dad, reply):
     out = summary.answer(dash(dad), "How is his balance?", ask=lambda s, u: reply)
     assert out["by"] == "blocked" and out["answer"] == summary.CANT_ANSWER and out["reason"]
     assert out["summary"].startswith("Simulated data.")
 
 
-def test_ask_steady_falls_back_when_offline(dad):
+def test_ask_steadi_falls_back_when_offline(dad):
     def offline(system, user):
         raise OSError("no internet")
 

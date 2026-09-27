@@ -19,7 +19,9 @@ from . import ai, steadi
 from .controller import CHECKIN_STEPS, READY, hold_prompt, sit_to_stand_prompt
 
 TTS_URL = "https://api.x.ai/v1/tts"
-DEFAULT_VOICE = "eve"
+# carina: xAI's wellness voice. Soft and soothing, and still easy to follow on a short instruction.
+# eve (the API default) is energetic and reads as more synthetic on these cues.
+DEFAULT_VOICE = "carina"
 SPEED = 0.9  # a little slower than normal, for older listeners
 BIT_RATE = 64000  # speech at 64 kbps keeps the committed files small
 TIMEOUT_S = 30

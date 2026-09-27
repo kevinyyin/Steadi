@@ -116,15 +116,21 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] Tests, ruff, README, API.md
 - [ ] Generate the audio with a real XAI_API_KEY and commit `src/checkin/static/audio/*.mp3` (no key on the agent VM)
 
+## Soothing voice (2026-09-27)
+
+- [x] Grok TTS default is `carina` (soft, soothing, easy to follow) instead of energetic `eve`
+- [x] Browser fallback prefers a natural English voice over the mechanical system default
+- [ ] Re-run `scripts/make_voice.py` so the committed cues are carina, not eve
+
 ## Devpost draft
 
-Checked against `main` at `586da4c`. Paste-ready copy: `docs/devpost-draft.md`.
+Checked against `main` at `9b760cd`. Paste-ready copy: `docs/devpost-draft.md`.
 
 - [x] Tagline (73 characters) and a 90-word elevator pitch under it
 - [x] Inspiration, what it does, how we built it, challenges, accomplishments, learned, what's next, built with, track fit, video script
 - [x] Simek 2012 wording checked: 21% fully adherent (95% CI 15–29%), not "stick with a home program"
 - [x] $80 billion kept as non-fatal falls, 2020; CDC "every second, an older adult falls"; about 41,000 deaths
-- [x] Updated for belt beeps, the sway warning, the 0.3 s balance break, Grok Voice, Ask Steady, the Grok switch, and `checkin validate`; no belt button
+- [x] Updated for belt beeps, the sway warning, the 0.3 s balance break, Grok Voice, Ask Steady, the Grok switch, `checkin validate`, the animal count, and the carina voice; no belt button
 - [x] Try it out: https://dhsquad.onrender.com returns the dashboard (`demo: true`, simulator). GitHub stays in the repository field.
 - [x] Gallery plan: 3:2, 5 MB, up to 15; nine slots, CAD only as an optional later frame. No CAD file in the repo.
 - [ ] Team names, stopwatch agreement numbers, per-unit cost

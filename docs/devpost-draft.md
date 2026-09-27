@@ -1,6 +1,6 @@
 # Devpost draft: Steady (HackGT 13)
 
-Checked against `main` at `586da4c` (27 Sep 2026): firmware, scoring, the exercise plan, the dashboard, and the docs in this repo. The pitch deck (`internal/pitch-deck.pdf`) was not in the clone, so deck lines below are the ones in the draft you pasted.
+Checked against `main` at `9b760cd` (27 Sep 2026): firmware, scoring, the exercise plan, the dashboard, and the docs in this repo. The pitch deck (`internal/pitch-deck.pdf`) was not in the clone, so deck lines below are the ones in the draft you pasted.
 
 Paste everything under **Submit this**. The notes after that are for the team.
 
@@ -43,7 +43,7 @@ Steady brings the CDC's fall-risk screening home. A belt worn at the lower back 
 **Check.** About three minutes, with a family member standing by, as STEADI's instructions require. The base station and the belt beep a cue for each step. The screen shows a large instruction and a picture, and reads the instruction aloud. The belt scores each test.
 
 - Timed Up and Go: timed from the "Go" beep until the person is seated again, detected from the belt's motion. A button press works as a stopwatch fallback.
-- Timed Up and Go while naming animals out loud: we report the dual-task cost, the percentage slowdown from the normal walk.
+- Timed Up and Go while naming animals out loud: we report the dual-task cost, the percentage slowdown from the normal walk. If the family opts in, Grok speech to text counts the distinct animals named (our measure, not a STEADI test). The count never changes the walk time or any flag.
 - 30-second chair stand: counts full stands. An Arms used button stops the test and records 0, as STEADI specifies.
 - Balance stances: feet together, then semi-tandem, then tandem, 10 seconds each, beside a counter. The belt times each hold until the stance breaks, and the sequence stops at the first failure. A short warning beep sounds when the person sways, and the stance keeps going. A break has to last 0.3 seconds, so a flinch or a bump to the belt doesn't end it. A button press can mark the break. A gap in the sensor data is scored as not measured.
 - Screening questions: the dashboard asks STEADI's three key questions: fallen in the past year, feel unsteady, worried about falling.
@@ -82,7 +82,8 @@ Both firmware sketches are built with arduino-cli. Wi-Fi credentials, the UDP po
 
 - Grok Imagine (`grok-imagine-image-2.0`) drew the instruction picture for each step: Timed Up and Go, chair stand, sit-to-stand, supported hold, and the three foot positions, shown from above because a side view hides foot placement. `scripts/make_images.py` holds the style prompts. The pictures ship as local files.
 - Grok chat (`grok-4.3`, configurable) turns the doctor summary into a 3- to 5-sentence family update. No name is sent. The reply is rejected if it uses a forbidden claim (diagnose, predict, guarantee, medication advice) or clinical jargon, or if it includes any number that is not in the source data. The page tags accepted text as "AI-written". With no key, no internet, or a rejected reply, the family gets a fixed-wording summary.
-- Grok Voice (xAI text to speech) reads each check-in and exercise instruction aloud. The cues are generated once by `scripts/make_voice.py` and ship as local files, so they play offline; the browser's own voice covers any cue without a file. **Listen** reads the family summary aloud. Speech never starts or stops a timer.
+- Grok Voice (xAI text to speech) reads each check-in and exercise instruction aloud in a soft, soothing voice. The cues are generated once by `scripts/make_voice.py` and ship as local files, so they play offline; the browser's own voice covers any cue without a file. **Listen** reads the family summary aloud. Speech never starts or stops a timer.
+- Grok speech to text counts the animals named on the dual-task walk, when the family opts in. The page records that one walk, sends it once, and keeps only the animal names and counts. With Grok off or no microphone, the walk is scored as usual.
 - Ask Steady lets the family ask a question about the latest results. Grok answers in 1 to 3 sentences from the doctor summary only (no name), through the same checks as the summary. Questions that ask for a prediction, a diagnosis, or medical advice are answered with fixed wording and never sent.
 
 **How we built it with Cursor.** We ran Cursor as a team of parallel agents and sent each task to the model best at it.
@@ -133,13 +134,13 @@ Balance is the hardest thing to score. That matches published lower-back IMU wor
 ### What's next
 
 - Run `checkin validate` on real people, publish the agreement with a stopwatch and with hand counts, and tune thresholds with the replay tool.
-- Detect talking during the dual-task walk with a close microphone and voice activity detection, and possibly count the animals named.
+- Check the animal count against a hand tally on real walks, with a close microphone.
 - Measure gait quality on an optional 30-second walk using Pfizer's open-source SKDH library. No core score depends on it.
 - Run a pilot with physical therapists or a senior center, and work out a per-unit cost.
 
 ### Built with
 
-python, fastapi, uvicorn, websockets, numpy, pyserial, javascript, html5, css, chart.js, esp32, arduino, arduino-cli, mpu-6050, c++, udp, phyphox, xai, grok, grok-imagine, grok-voice, cursor, claude, codex, pytest, ruff, uv, render
+python, fastapi, uvicorn, websockets, numpy, pyserial, javascript, html5, css, chart.js, esp32, arduino, arduino-cli, mpu-6050, c++, udp, phyphox, xai, grok, grok-imagine, grok-voice, speech-to-text, cursor, claude, codex, pytest, ruff, uv, render
 
 ### Track fit
 
@@ -147,7 +148,7 @@ python, fastapi, uvicorn, websockets, numpy, pyserial, javascript, html5, css, c
 
 **Aramco, A Marina's Mission (social good: health).** Falls are the leading cause of injury death for adults 65 and older. Steady brings the CDC's own STEADI fall-risk screening from a yearly clinic visit to a weekly routine at home, and pairs it with strength and balance exercise of the type shown to reduce the rate of falls. The belt confirms the exercise was done. It is built for the people it serves: plain language for families, a one-page summary for the doctor, large text and AA contrast, and a check-in that works offline. It flags increased fall risk and tracks change from baseline. It does not diagnose, and we have not run a clinical trial.
 
-**SpaceXAI, Make it Legendary (Cursor + Grok).** We built Steady in Cursor as a team of parallel agents. Grok handled quick idea checks, Claude and Grok built the backend, and Codex and Grok built the frontend. Cursor's mid-run guidance let us steer agents with new ideas while they were running. Grok is also in the product. Grok Imagine drew every instruction picture, Grok Voice reads the check-in aloud, and a Grok model writes the family's update and answers their questions from the recorded numbers inside a strict check: no invented numbers, no diagnosis or prediction claims, no jargon, and fixed wording as the fallback. One switch turns every Grok call off.
+**SpaceXAI, Make it Legendary (Cursor + Grok).** We built Steady in Cursor as a team of parallel agents. Grok handled quick idea checks, Claude and Grok built the backend, and Codex and Grok built the frontend. Cursor's mid-run guidance let us steer agents with new ideas while they were running. Grok is also in the product. Grok Imagine drew every instruction picture, Grok Voice reads the check-in aloud, Grok speech to text counts the animals named on the dual-task walk, and a Grok model writes the family's update and answers their questions from the recorded numbers inside a strict check: no invented numbers, no diagnosis or prediction claims, no jargon, and fixed wording as the fallback. One switch turns every Grok call off.
 
 ### Video demo script (about 2 minutes)
 
@@ -249,6 +250,6 @@ Leave out stat slides, a Cursor window, a wiring diagram, the phone-in-a-pouch b
 - Team names. The deck you described lists Kevin Yin and James Wang, and Allen runs the physical demo. Confirm the Devpost team before submitting. Nothing here invents a third name.
 - Stopwatch and hand-count agreement. The tool is in the repo (`checkin validate`, `docs/VALIDATION.md`), but no real trials have been recorded. The testing paragraph says it is still to be measured.
 - Spoken cues ship as the browser's voice until someone runs `scripts/make_voice.py` with the xAI key and commits the audio.
-- Counting the animals named on the dual-task walk is an open pull request, not in this tree. It stays under What's next.
+- The animal count has only been tested with mocked speech to text and the bundled sample. Try it once with the key and a close mic before filming.
 - Per-unit cost. `docs/COMPETITION.md` still says to fill this in before judging.
 - Image files for the gallery. The shot list is above. Photos of the belt, the base station, and a person wearing the belt still have to be taken. There is no CAD file in the repo to render.

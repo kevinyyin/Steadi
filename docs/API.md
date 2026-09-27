@@ -1,7 +1,7 @@
 # Check-in API
 
 Everything the dashboard shows comes from here, so the UI can be rebuilt without touching the backend.
-Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside calls are the optional AI family summary and Ask Steady (below), which send the doctor summary text, with no name, to xAI Grok; `CHECKIN_AI=off` or the dashboard's Grok switch stops them.
+Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside calls are the optional AI family summary and Ask Steady (below), which send the doctor summary text, with no name, to xAI Grok, and reading that family summary aloud on request (`/summary/audio`); `CHECKIN_AI=off` or the dashboard's Grok switch stops them.
 
 Units: seconds (`_s`), percent (`_pct`), sway in m/s² (RMS horizontal acceleration at the lower back).
 `null` means "not measured" (for example the belt dropped out); it never means zero.
@@ -168,6 +168,12 @@ Body `{"question": "Is he doing his exercises?"}` (1–200 characters). Grok ans
 ### `GET /api/ai`, `PUT /api/ai`
 
 The one switch for every Grok call (family summary, Ask Steady, and later AI features: server code checks `checkin.ai.ai_enabled()`). `GET` returns `{"on": true, "available": true, "blocked_by": null}`; `blocked_by` is `"no key"` (no `XAI_API_KEY`) or `"setting"` (`CHECKIN_AI=off`), and then `on` stays false. `PUT {"on": false}` switches it until the server restarts, and broadcasts an `ai` event.
+
+### `GET /api/people/{id}/summary/audio`
+
+The last `family` summary this server returned for that person, spoken in a Grok voice (`audio/mpeg`). It only speaks text the server wrote, never text sent by the page. The first request calls xAI text to speech (`CHECKIN_VOICE`, default `eve`). The file is cached in `data/audio/`, so later requests don't call xAI. Returns 404 when no summary has been made yet, or when there's no `XAI_API_KEY` or no internet. On a 404, read the text with the browser's `speechSynthesis` instead. Label it "AI voice".
+
+The check-in cues are static files, not an API: `/static/audio/index.json` maps each prompt's exact text to a file in `/static/audio/`, made by `scripts/make_voice.py`.
 
 ### Check-in record
 

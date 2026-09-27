@@ -73,13 +73,13 @@ flowchart LR
     vbase["On-screen base station"] <--> ctl
 
     api <-->|"HTTP + WebSocket, local network"| tablet["Family dashboard (tablet browser)"]
-    api -.->|"optional family summary: numbers only, no name"| grok["xAI Grok API"]
+    api -.->|"optional family summary (numbers only, no name) and reading it aloud"| grok["xAI Grok API"]
 ```
 
 - **The laptop is the session controller.** For each step it sends the "Go" cue to the base station, tags the incoming motion stream with the step, scores the step when it ends, and pushes live state to the dashboard over a WebSocket.
 - **Timing starts on the "Go" cue**, as in the clinical protocol, so the sensor only has to detect the end: the final sit-down (trunk pitch settles and motion stops) for the TUG, rise cycles for chair stands and sit-to-stands, and a departure from the stance posture for balance. Scoring thresholds are named constants at the top of [`src/checkin/signals.py`](src/checkin/signals.py).
 - **Scores are whole-step totals**, so the belt, the phone, and the button don't need sub-second clock alignment.
-- **Local first.** No CDN or web fonts from the network (Chart.js and the font are vendored), JSON files instead of a database, and the dashboard works on an offline access point. The only optional network call is the Grok family summary.
+- **Local first.** No CDN or web fonts from the network (Chart.js and the font are vendored), JSON files instead of a database, and the dashboard works on an offline access point. The only optional network calls are the Grok family summary and reading it aloud; the spoken check-in cues are committed files.
 - **Every session's raw stream is saved** to `data/recordings/`, so any real session can be re-scored after tuning (`checkin replay`) or played back through the live dashboard.
 
 ## Quick start (no hardware)
@@ -119,8 +119,14 @@ What is built today:
 - **Grok on/off.** The footer on every view reads "Grok: on" or "Grok: off (works offline)", with **Turn Grok off** / **Turn Grok on**. `CHECKIN_AI=off` turns every Grok call off for good. With Grok off, nothing leaves the laptop and everything else works the same.
 - **Instruction pictures.** The pictures on the check-in screen (TUG, chair stand, the three foot positions, sit-to-stand, supported hold) were generated with Grok Imagine by [`scripts/make_images.py`](scripts/make_images.py) and are committed to [`src/checkin/static/img/`](src/checkin/static/img/), so the dashboard needs no network at run time.
 
-<!-- GROK PLACEHOLDER: another effort may add Grok/SpaceXAI features. Replace this block with what was built, how to turn it on, and what data leaves the laptop. -->
-> **Placeholder: more Grok / SpaceXAI track features.** Reserved for features being added in a separate effort. Not implemented in this revision.
+- **Spoken cues (Grok Voice).** The check-in screen reads each instruction, the rest beat, and the closing line aloud. The audio is made once with xAI text to speech by [`scripts/make_voice.py`](scripts/make_voice.py) and committed under [`src/checkin/static/audio/`](src/checkin/static/audio/), so the tablet plays it with no internet; any cue without a file is read by the browser's own voice. Speech never starts or stops a timer: the button and the "Go" buzzer do, and pressing the button mid-sentence stops the voice. **Listen** on the family summary plays it in the Grok voice when `XAI_API_KEY` is set (made on first listen, then cached in `data/audio/`), otherwise in the browser's voice. It only speaks the summary the server wrote. `CHECKIN_VOICE` picks the voice (default `eve`).
+
+```bash
+uv run python scripts/make_voice.py --dry-run   # the cues it would make, and the cost (18 cues, about $0.04)
+XAI_API_KEY=... uv run python scripts/make_voice.py
+```
+
+It skips cues that already have a file, so re-running only pays for new or reworded ones (the filename is a hash of the wording and voice). Commit the new files in `src/checkin/static/audio/`.
 
 ## Tech stack
 
@@ -130,8 +136,8 @@ What is built today:
 | Frontend | One static page: vanilla HTML/JS, vendored Chart.js 4.5.1 and Archivo font (OFL), no build step |
 | Storage | JSON files per person and CSV recordings in `data/` (git-ignored) |
 | Firmware | Arduino sketches built with `arduino-cli`: ESP32 belt (UDP), Arduino base station (serial) |
-| AI (optional) | xAI Grok chat completions for the family summary; Grok Imagine for the committed instruction pictures |
-| Tooling | uv, pytest (175 tests, including a full simulated check-in scored against the simulator's true values), ruff |
+| AI (optional) | xAI Grok chat completions for the family summary; Grok Imagine for the committed instruction pictures; xAI text to speech for the spoken cues and **Listen** |
+| Tooling | uv, pytest (including a full simulated check-in scored against the simulator's true values), ruff |
 
 ## Repo layout
 
@@ -148,6 +154,7 @@ src/checkin/
   seed.py         the simulated eight-week example history
   store.py        people JSON and CSV recordings
   summary.py      doctor summary, family summary (Grok with guardrails, or template)
+  voice.py        spoken cues and Listen (xAI text to speech, cached)
   static/         index.html, app.js, instruction pictures, vendored Chart.js and font
 firmware/
   esp32_imu/      belt: MPU-6050 over I2C, UDP broadcast, status LED
@@ -162,6 +169,7 @@ docs/
   API.md          REST and WebSocket API used by the page
 scripts/
   make_images.py  regenerate the instruction pictures with Grok Imagine
+  make_voice.py   regenerate the spoken cues with Grok Voice
 tests/            pytest suite
 ```
 

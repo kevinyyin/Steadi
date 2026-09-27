@@ -97,13 +97,32 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] Check-in: each step's local picture beside the instruction, plus the exercise pictures
 - [x] Family summary calls xAI Grok (`XAI_API_KEY`, `CHECKIN_GROK_MODEL`); same checks and template fallback
 
+## Hardware validation report
+
+- [x] Read diagram-design skill; map it onto the dashboard's tokens (Archivo, ink/blue, white paper)
+- [x] Static Archivo 400/700 TTFs for PNG export (resvg can't read woff2)
+- [x] `src/checkin/validate.py`: ground-truth CSV, template, pairing, agreement stats, simulated set
+- [x] `src/checkin/report.py`: SVG charts, PNG export, offline HTML page
+- [x] CLI `checkin validate`; tests; ruff
+- [x] docs/VALIDATION.md protocol + README pointer
+- [x] End-to-end on simulated data; copy sample images to the project store media/validation/
+
+## Grok Voice cues (2026-09-27)
+
+- [x] `voice.py`: phrase list from the controller's own prompts, hashed filenames, xAI TTS call, cache
+- [x] `scripts/make_voice.py` (skip existing, prune unused, `--dry-run` cost) and `static/audio/index.json`
+- [x] Check-in screen speaks waiting prompts, rest, and the closing line; hushes at Go; browser voice fallback
+- [x] Listen on the family summary (`/api/people/{id}/summary/audio`, only the served text, cached)
+- [x] Tests, ruff, README, API.md
+- [ ] Generate the audio with a real XAI_API_KEY and commit `src/checkin/static/audio/*.mp3` (no key on the agent VM)
+
 ## Devpost draft
 
-Checked against `main` at `e474ab3`. Paste-ready copy: `docs/devpost-draft.md`.
+Checked against `main` at `586da4c`. Paste-ready copy: `docs/devpost-draft.md`.
 
 - [x] Tagline (73 characters) and a 90-word elevator pitch under it
 - [x] Inspiration, what it does, how we built it, challenges, accomplishments, learned, what's next, built with, track fit, video script
 - [x] Simek 2012 wording checked: 21% fully adherent (95% CI 15–29%), not "stick with a home program"
 - [x] $80 billion kept as non-fatal falls, 2020; CDC "every second, an older adult falls"; about 41,000 deaths
-- [x] Belt button, belt buzzer cues, 0.3 s balance break, sway-warning beep, and Grok Voice left out of the paste-ready text
+- [x] Updated for belt beeps, the sway warning, the 0.3 s balance break, Grok Voice, Ask Steady, the Grok switch, and `checkin validate`; no belt button
 - [ ] Team names, stopwatch agreement numbers, per-unit cost, and a check that https://dhsquad.onrender.com is up

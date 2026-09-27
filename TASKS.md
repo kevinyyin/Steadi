@@ -96,3 +96,14 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] Balance stances use a feet-from-above prompt; sit-to-stand is halfway up, arms crossed
 - [x] Check-in: each step's local picture beside the instruction, plus the exercise pictures
 - [x] Family summary calls xAI Grok (`XAI_API_KEY`, `CHECKIN_GROK_MODEL`); same checks and template fallback
+
+## Devpost draft
+
+Checked against `main` at `e474ab3`. Paste-ready copy: `docs/devpost-draft.md`.
+
+- [x] Tagline (73 characters) and a 90-word elevator pitch under it
+- [x] Inspiration, what it does, how we built it, challenges, accomplishments, learned, what's next, built with, track fit, video script
+- [x] Simek 2012 wording checked: 21% fully adherent (95% CI 15–29%), not "stick with a home program"
+- [x] $80 billion kept as non-fatal falls, 2020; CDC "every second, an older adult falls"; about 41,000 deaths
+- [x] Belt button, belt buzzer cues, 0.3 s balance break, sway-warning beep, and Grok Voice left out of the paste-ready text
+- [ ] Team names, stopwatch agreement numbers, per-unit cost, and a check that https://dhsquad.onrender.com is up

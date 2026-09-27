@@ -3,6 +3,7 @@
 Each step: wait for the button → "start" cue = "Go" (timing starts) → score the tagged window → "stop" cue.
 """
 
+import copy
 import logging
 from datetime import datetime
 
@@ -175,7 +176,8 @@ class Controller:
     # ---- events --------------------------------------------------------------------------------
     def _emit(self):
         self._last_emit = self.clock.now()
-        self.on_event({"type": "state", **self.state})
+        # A copy: the WebSocket sends it later, and by then a step can say "waiting" with the old prompt.
+        self.on_event({"type": "state", **copy.deepcopy(self.state)})
 
     def _emit_live(self, t_go, **live):
         self.state["live"] = {"elapsed_s": round(self.clock.now() - t_go, 1), **live}

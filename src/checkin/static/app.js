@@ -483,6 +483,7 @@ function renderCheckin(s) {
 
   const key = `${step ? step.id : ""}:${stage}`;
   if (key === stageKey) return;
+  const wasRest = stageKey?.endsWith(":rest"); // the rest keeps going when the next step starts waiting
   stageKey = key;
   if (stage === "waiting") {
     announce(`${title}. ${s.prompt}`);
@@ -490,7 +491,7 @@ function renderCheckin(s) {
   } else if (stage === "go" || stage === "moving") {
     if (stage === "go") announce(`Go: ${stepTitle(step, steps)}.`);
     hush(); // pressed mid-sentence: the step has started, so stop talking over it
-  } else if (stage === "rest") {
+  } else if (stage === "rest" && !wasRest) {
     announce("Done. Rest a moment.");
     cueVoice("Done. Rest a moment.");
   }

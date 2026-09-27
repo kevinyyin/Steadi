@@ -138,3 +138,22 @@ def test_heavy_sway_warns_before_it_breaks():
     assert not balance_hold(t, acc, gyro, 0.0, 10.0)[1]  # held: no break
     assert any(sway_warning(t[t <= now], acc[t <= now], gyro[t <= now], 0.0) for now in np.arange(0.75, 10.0, 0.25))
 
+
+
+@pytest.mark.parametrize("acc_g, gyro_dps", [(0.4, 0.0), (0.0, 80.0), (0.4, 80.0)])
+def test_a_brief_twitch_is_not_a_break(acc_g, gyro_dps):
+    p = sim.SimParams(hold_s={s: 60.0 for s in ("feet_together", "semi_tandem", "tandem")})
+    t, acc, gyro, _ = sim.simulate("balance_tandem", p, seed=0)
+    twitch = (t >= 5.0) & (t < 5.1)  # a 0.1 s jolt: a flinch, a bump to the belt
+    acc[twitch, 0] += acc_g
+    gyro[twitch, 1] += gyro_dps
+    hold, broke, _ = balance_hold(t, acc, gyro, 0.0, 10.0)
+    assert not broke and hold == 10.0
+
+
+def test_fidgeting_at_go_does_not_skew_the_stance():
+    p = sim.SimParams(hold_s={s: 60.0 for s in ("feet_together", "semi_tandem", "tandem")})
+    t, acc, gyro, _ = sim.simulate("balance_feet_together", p, seed=0)
+    settle = (t >= 0.0) & (t < 0.15)  # still shifting weight as the "Go" beep plays
+    acc[settle, 0] += 0.5
+    assert balance_hold(t, acc, gyro, 0.0, 10.0)[:2] == (10.0, False)

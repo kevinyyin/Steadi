@@ -96,3 +96,13 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] Balance stances use a feet-from-above prompt; sit-to-stand is halfway up, arms crossed
 - [x] Check-in: each step's local picture beside the instruction, plus the exercise pictures
 - [x] Family summary calls xAI Grok (`XAI_API_KEY`, `CHECKIN_GROK_MODEL`); same checks and template fallback
+
+## Hardware validation report
+
+- [x] Read diagram-design skill; map it onto the dashboard's tokens (Archivo, ink/blue, white paper)
+- [x] Static Archivo 400/700 TTFs for PNG export (resvg can't read woff2)
+- [x] `src/checkin/validate.py`: ground-truth CSV, template, pairing, agreement stats, simulated set
+- [x] `src/checkin/report.py`: SVG charts, PNG export, offline HTML page
+- [x] CLI `checkin validate`; tests; ruff
+- [x] docs/VALIDATION.md protocol + README pointer
+- [ ] End-to-end on simulated data; copy sample images to the project store media/validation/

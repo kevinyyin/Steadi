@@ -98,7 +98,17 @@ Or play it back through the live dashboard, one step per button press:
 uv run checkin serve --source csv:data/recordings/20260926-100516-checkin.csv --base virtual
 ```
 
-### 6. Public demo (Render)
+### 6. Check the belt against a stopwatch
+
+Protocol and ground-truth format: `docs/VALIDATION.md`. After recording check-ins with a timer beside the walker:
+
+```bash
+uv run checkin validate --template                              # blank rows in data/validation/ground_truth.csv
+uv run checkin validate data/validation/ground_truth.csv        # agreement charts in data/validation/report/
+uv run checkin validate --simulated                             # preview on simulated data (labelled Simulated)
+```
+
+### 7. Public demo (Render)
 
 A web service on render.com (not Vercel: the app needs a long-running process and a WebSocket). Build command `uv sync --frozen`; start command `uv run checkin serve --source sim --base virtual --demo --port $PORT`. `--demo` makes Guest ready to start (age 72, female) and turns off adding or editing people. Set no environment variables: without `XAI_API_KEY` the summary uses fixed wording and the site makes no paid calls. Data resets whenever the service restarts.
 

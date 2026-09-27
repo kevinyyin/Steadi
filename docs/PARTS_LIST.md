@@ -27,6 +27,12 @@ Fall-prevention belt: screen → assess → intervene → track. Sources: **Team
 | AD0 | GND (address 0x68) or leave unconnected |
 | XDA, XCL, INT | Unconnected |
 
+![MPU-6050 wiring on a classic ESP32](diagrams/belt-mpu6050.svg)
+
+The belt status LED and buzzer are not in the table above. The ESP32 sketch uses these pins:
+
+![Belt status LED and buzzer pins](diagrams/belt-status.svg)
+
 GPIO 21/22 are the default I2C pins on a classic ESP32 dev board. ESP32-S2/S3/C3 boards use different defaults; if yours is one, wire to any two free pins and set them in code with `Wire.begin(SDA, SCL)`. The chip name is printed on the ESP32's metal shield.
 
 **MPU-6050 settings:** accelerometer ±8 g, gyroscope ±500 °/s, 100 Hz, built-in low-pass filter on, read from the FIFO buffer.
@@ -57,6 +63,12 @@ GPIO 21/22 are the default I2C pins on a classic ESP32 dev board. ESP32-S2/S3/C3
 | RGB blue | D5 | via 470 Ω |
 | RGB common leg | GND (common-cathode) or 5V (common-anode, inverted code) | Longest leg |
 | Buzzer | D8 → 1 kΩ → transistor base; buzzer between 5V and collector; emitter → GND | On a classic Nano/Uno R3, a small piezo buzzer can go D8 → buzzer → GND directly |
+
+![Base station button and RGB LED](diagrams/base-button-led.svg)
+
+![Base-station buzzer on an Uno R4](diagrams/base-buzzer-r4.svg)
+
+![Base-station buzzer on a classic Nano or Uno R3](diagrams/base-buzzer-classic.svg)
 
 **Pin current:** the Uno R4's pins supply at most **8 mA** each (classic Nano/Uno R3: about 20 mA). 470 Ω keeps each LED color under that; a buzzer can draw more, so on the R4 it goes through the transistor. On classic boards, `tone()` disables PWM on D3/D11, which is why the LED uses D5/D6/D9.
 
@@ -98,6 +110,8 @@ GPIO 21/22 are the default I2C pins on a classic ESP32 dev board. ESP32-S2/S3/C3
 ---
 
 ## 6. Powering the ESP32
+
+![How the ESP32 belt is powered](diagrams/belt-power.svg)
 
 **Primary: USB power bank → ESP32's USB port.** The board's built-in regulator turns the 5 V into the 3.3 V the ESP32 needs, and the MPU-6050 runs off the ESP32's 3V3 pin (a few mA). Simplest and most reliable.
 - **Current:** roughly 100–150 mA on average with Wi-Fi on, with short spikes of a few hundred mA when transmitting. Any normal power bank handles this for many hours.

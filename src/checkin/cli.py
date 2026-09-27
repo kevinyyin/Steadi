@@ -37,6 +37,43 @@ def replay(path, age=None, sex=None):
     return out
 
 
+def validate(args):
+    """Belt vs hand ground truth: write a template, or the agreement report (docs/VALIDATION.md)."""
+    from . import report
+    from . import validate as v
+
+    truth = args.truth or DATA / "validation" / "ground_truth.csv"
+    if args.template:
+        added = v.write_template(args.recordings, truth)
+        print(f"{truth}: added {added} rows from {args.recordings}/. Fill in the truth column, then run "
+              f"`checkin validate {truth}`.")
+        return
+    if args.simulated:
+        base = DATA / "validation" / "simulated"
+        truth = v.make_simulated(base, seed=args.seed)
+        print(f"Simulated: wrote recordings and made-up ground truth to {base}/")
+    if not truth.exists():
+        raise SystemExit(f"{truth} not found. Start one with `checkin validate --template {truth}`.")
+    pairs = v.pair(truth, args.recordings)
+    if not pairs:
+        raise SystemExit(f"{truth}: no rows with a number in the truth column yet")
+    stats = v.summarize(pairs, args.tol_time, args.tol_count)
+    simulated = any(p["simulated"] for p in pairs)
+    out = args.out or truth.parent / "report"
+    files = report.write(out, pairs, stats, simulated, str(truth), png=not args.no_png)
+    tag = " (Simulated)" if simulated else ""
+    for s in stats.values():
+        if not s["n"]:
+            print(f"{s['label']}{tag}: none scored ({s['not_scored']} not scored)")
+            continue
+        agree = (f"{s['exact']}/{s['n']} exact, " if s["kind"] == "count" else "") + \
+            f"{s['within']}/{s['n']} within ±{s['tol']:g} {s['unit']}"
+        missed = f", {s['not_scored']} not scored" if s["not_scored"] else ""
+        print(f"{s['label']}{tag}: {agree}; mean difference {s['bias']:+.2f} {s['unit']}, "
+              f"typical error {s['mae']:.2f} {s['unit']}{missed}")
+    print(f"Report: {files[0]}")
+
+
 def serve(args):
     import uvicorn
 
@@ -89,6 +126,17 @@ def main(argv=None):
     r.add_argument("--sex", choices=["male", "female"])
     d = sub.add_parser("seed", help="rewrite the 'Simulated: Dad' history ending today")
     d.add_argument("--data", type=Path, default=DATA)
+    v = sub.add_parser("validate", help="agreement between the belt and a stopwatch / hand count (docs/VALIDATION.md)")
+    v.add_argument("truth", nargs="?", type=Path, help="ground-truth CSV (default data/validation/ground_truth.csv)")
+    v.add_argument("--template", action="store_true", help="add a blank row to TRUTH for every recorded step")
+    v.add_argument("--simulated", action="store_true",
+                   help="generate simulated sessions with made-up ground truth, then report on them")
+    v.add_argument("--recordings", type=Path, default=DATA / "recordings")
+    v.add_argument("--out", type=Path, help="report folder (default: next to TRUTH, in report/)")
+    v.add_argument("--tol-time", type=float, default=1.0, help="seconds counted as agreement (default 1.0)")
+    v.add_argument("--tol-count", type=int, default=1, help="reps counted as agreement (default 1)")
+    v.add_argument("--no-png", action="store_true", help="skip the PNG exports")
+    v.add_argument("--seed", type=int, default=0, help="with --simulated: random seed")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
@@ -96,6 +144,8 @@ def main(argv=None):
         serve(args)
     elif args.cmd == "replay":
         print(json.dumps(replay(args.file, args.age, args.sex), indent=2))
+    elif args.cmd == "validate":
+        validate(args)
     elif args.cmd == "seed":
         from .seed import seed_dad
         from .store import Store

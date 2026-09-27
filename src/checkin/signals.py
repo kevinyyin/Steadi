@@ -21,6 +21,9 @@ BREAK_GYRO_DPS = 30.0  # balance: or the trunk rotates this fast
 # at 0.12 g, so 0.14 g doesn't beep at someone who's fine. Tune on real recordings.
 WARN_ACC_G = 0.14  # balance: posture this far from the stance (a break is BREAK_ACC_G)
 WARN_GYRO_DPS = 20.0  # balance: or the trunk rotates this fast (a break is BREAK_GYRO_DPS)
+BREAK_MIN_S = 0.3  # balance: a break must last this long; a flinch or a bump to the belt is shorter
+WARN_MIN_S = 0.2  # balance: and a warning this long
+BALANCE_SMOOTH_S = 0.25  # balance: posture and rotation are averaged over this, so jiggle doesn't count
 MAX_GAP_S = 0.5  # a longer hole in the data means the sensor dropped out: don't score the step
 CHAIR_STAND_S = 30.0
 
@@ -141,25 +144,39 @@ def stand_times(t, acc, t_go, t_limit=None):
 
 def _departure(t, acc, gyro, t_go):
     """From "Go" on: t, acc, how far the posture has moved from the stance (g), trunk rotation (deg/s).
-    The stance is the first 0.5 s after "Go". Needs at least 10 samples after "Go"."""
+    The stance is the median of the first 0.5 s after "Go", so fidgeting at the beep doesn't skew it.
+    Needs at least 10 samples after "Go"."""
     keep = t >= t_go
     t, acc, gyro = t[keep], acc[keep], gyro[keep]
     fs = _fs(t)
     first = t < t_go + 0.5
-    ref = acc[first].mean(axis=0)
+    ref = np.median(acc[first], axis=0)
     bias = np.median(gyro[first], axis=0)
-    dev = np.linalg.norm(_roll(acc, 0.1, fs) - ref, axis=1)
-    rot = _roll(np.linalg.norm(gyro - bias, axis=1), 0.1, fs)
+    dev = np.linalg.norm(_roll(acc, BALANCE_SMOOTH_S, fs) - ref, axis=1)
+    rot = _roll(np.linalg.norm(gyro - bias, axis=1), BALANCE_SMOOTH_S, fs)
     return t, acc, dev, rot
 
 
-def sway_warning(t, acc, gyro, t_go, recent_s=0.3):
-    """True if a stance swayed past the warning level in the last `recent_s`: the helper should step in."""
+def _first_lasting(mask, t, min_s):
+    """Index where the first run of True lasting at least `min_s` starts, or None."""
+    edges = np.diff(np.concatenate([[0], mask.astype(int), [0]]))
+    starts, ends = np.flatnonzero(edges == 1), np.flatnonzero(edges == -1) - 1
+    dt = np.median(np.diff(t)) if len(t) > 1 else 0.0
+    for a, b in zip(starts, ends, strict=True):
+        if t[b] - t[a] + dt >= min_s:
+            return int(a)
+    return None
+
+
+def sway_warning(t, acc, gyro, t_go, recent_s=0.6):
+    """True if a stance swayed past the warning level for WARN_MIN_S within the last `recent_s`: the helper
+    should step in."""
     if (t >= t_go).sum() < 10 or t[-1] < t_go + 0.5:
         return False
     t, _, dev, rot = _departure(t, acc, gyro, t_go)
     late = t >= t[-1] - recent_s
-    return bool(((dev[late] > WARN_ACC_G) | (rot[late] > WARN_GYRO_DPS)).any())
+    warn = (dev[late] > WARN_ACC_G) | (rot[late] > WARN_GYRO_DPS)
+    return _first_lasting(warn, t[late], WARN_MIN_S) is not None
 
 
 def balance_hold(t, acc, gyro, t_go, t_end):
@@ -169,20 +186,20 @@ def balance_hold(t, acc, gyro, t_go, t_end):
     t, acc, dev, rot = _departure(t, acc, gyro, t_go)
     broke = (dev > BREAK_ACC_G) | (rot > BREAK_GYRO_DPS)
     broke &= t <= t_end
-    idx = np.flatnonzero(broke)
+    first = _first_lasting(broke, t, BREAK_MIN_S)  # the hold ends where that break began
     # No break seen and the data reaches t_end (short tail gaps allowed, as mid-stance): held to the end.
     # Trade-off: a break inside a lost tail of <= MAX_GAP_S goes unseen, instead of every lost tail reading
     # as a short hold and a false balance flag. Longer gaps are "not measured" (data_error).
-    stop = t[idx[0]] if len(idx) else (t_end if t[-1] >= t_end - MAX_GAP_S else t[-1])
+    stop = t[first] if first is not None else (t_end if t[-1] >= t_end - MAX_GAP_S else t[-1])
     hold = max(0.0, float(stop - t_go))
     during = t < stop
     if during.sum() < 10:
-        return round(hold, 2), bool(len(idx)), 0.0
+        return round(hold, 2), first is not None, 0.0
     a = acc[during]
     down = _unit(a.mean(axis=0))
     horiz = a - np.outer(a @ down, down)
     sway = float(np.sqrt(np.mean(np.sum((horiz - horiz.mean(axis=0)) ** 2, axis=1))) * G)
-    return round(hold, 2), bool(len(idx)), round(sway, 3)
+    return round(hold, 2), first is not None, round(sway, 3)
 
 
 def data_error(t, t_go, t_end):

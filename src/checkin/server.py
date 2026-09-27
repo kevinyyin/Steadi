@@ -172,12 +172,14 @@ def create_app(controller, store, today=date.today, demo=False):
         if not ai.ai_enabled():
             raise HTTPException(503, "Grok is off")
         question = " ".join(body.question.split())
-        key = (pid, (dash["latest"] or {}).get("id"), question.lower())
+        key = (pid, summary.doctor(dash), question.lower())  # new exercise days change the answer too
         if key in answers:
             return answers[key]
         now = time.monotonic()
         while asked and now - asked[0] > 60:
             asked.popleft()
+        if summary.ASK_FORBIDDEN.search(question) or not dash["latest"]:
+            return summary.answer(dash, question)  # never sent to Grok, so it costs nothing
         if len(asked) >= ASK_PER_MINUTE:
             raise HTTPException(429, "Too many questions in a minute. Try again shortly.")
         asked.append(now)
@@ -192,6 +194,7 @@ def create_app(controller, store, today=date.today, demo=False):
 
     @app.put("/api/ai")
     async def set_ai(body: AiIn):  # async: broadcast() isn't thread-safe
+        not_in_demo()  # a public visitor can't switch Grok for everyone; the demo host uses CHECKIN_AI
         ai.set_enabled(body.on)
         out = ai.status()
         broadcast({"type": "ai", **out})

@@ -191,3 +191,17 @@ def test_ask_steady_falls_back_when_offline(dad):
 
     out = summary.answer(dash(dad), "How is his balance?", ask=offline)
     assert out["by"] == "template" and out["answer"] is None and out["summary"]
+
+
+@pytest.mark.parametrize("reply", [
+    "She is healthy and does not need to see a doctor.",
+    "Yes, she can stop using her cane now.",
+    "Her risk of falling is low.",
+])
+def test_reassurance_a_screening_cant_give_is_rejected(reply):
+    assert summary.FORBIDDEN.search(reply)
+
+
+@pytest.mark.parametrize("question", ["How likely is he to fall?", "Is it safe for her to stop using her cane?"])
+def test_risk_and_cane_questions_never_reach_grok(question):
+    assert summary.ASK_FORBIDDEN.search(question)

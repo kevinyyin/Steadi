@@ -25,7 +25,8 @@ NUMBER = re.compile(r"\d+(?:\.\d+)?")
 FORBIDDEN = re.compile(
     r"diagnos|predict|will (?:likely |probably )?fall|going to fall|guarantee|prevents? (?:all |any )?falls"
     r"|(?:un)?likely to fall|won.t fall|will not fall|never fall|safe from fall"
-    r"|medicat|prescri|dosage",
+    r"|medicat|prescri|dosage"
+    r"|\bhealthy\b|low risk|risk (?:of falling )?is low|stop using|(?:no|doesn.t|does not) need (?:to see )?a doctor",
     re.IGNORECASE,
 )
 # Words the family never sees (CLAUDE.md): an AI summary using them falls back to the template.
@@ -59,7 +60,7 @@ CANT_ANSWER = "I can only answer from the check-in results."
 # Questions only a prediction, diagnosis or medical advice could answer: not sent to Grok at all.
 ASK_FORBIDDEN = re.compile(
     r"\bwill\b.*\bfall|going to fall|chances? of (?:him |her |them )?falling|odds|predict|diagnos|guarantee"
-    r"|medicat|prescri|dosage|\bpills?\b|\bdrugs?\b",
+    r"|medicat|prescri|dosage|\bpills?\b|\bdrugs?\b|how likely|stop using",
     re.IGNORECASE,
 )
 

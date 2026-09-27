@@ -147,6 +147,7 @@ def test_demo_blocks_adding_and_editing_people(tmp_path):
         assert c.get("/api/state").json()["demo"] is True
         assert c.post("/api/people", json=PROFILE).status_code == 403
         assert c.put("/api/people/sim-dad", json=PROFILE).status_code == 403
+        assert c.put("/api/ai", json={"on": False}).status_code == 403  # one visitor can't switch Grok for all
         assert c.get("/api/people/sim-dad/dashboard").status_code == 200
 
 

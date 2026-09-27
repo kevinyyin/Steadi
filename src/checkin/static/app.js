@@ -576,6 +576,7 @@ function renderState(s) {
   const was = state && state.phase;
   state = s;
   $("edit-profile").hidden = $("add-person").hidden = !!s.demo; // the public demo has one ready-made Guest
+  if (s.demo) $("ai-toggle").hidden = true;
   const running = s.phase === "running";
   document.body.dataset.running = running;
   let justEnded = false;
@@ -1328,11 +1329,11 @@ function renderAi(s) {
   aiStatus = s;
   $("ai-line").textContent = s.on ? "Grok: on" : "Grok: off (works offline)";
   $("ai-why").textContent = s.on
-    ? "Summaries and questions are sent to xAI without the name."
+    ? "Summaries, questions, and Listen are sent to xAI without the name."
     : s.blocked_by === "no key" ? "No xAI key is set, so nothing leaves the laptop."
     : s.blocked_by === "setting" ? "Turned off by the CHECKIN_AI setting, so nothing leaves the laptop."
     : "Nothing leaves the laptop.";
-  $("ai-toggle").hidden = !s.available;
+  $("ai-toggle").hidden = !s.available || !!state?.demo; // on the public demo only the host decides
   $("ai-toggle").textContent = s.on ? "Turn Grok off" : "Turn Grok on";
   renderAsk();
 }

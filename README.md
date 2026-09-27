@@ -1,136 +1,195 @@
-# Fall-risk check-in
+# Steady
 
-Fall-risk screening at home with the CDC's STEADI algorithm: screen (three key questions) → assess (Timed Up and Go, dual-task TUG, 30-second chair stand, balance stances, scored by a lower-back sensor) → intervene (coached sit-to-stands and supported balance holds, counted and timed by the sensor) → track (a family dashboard with flags, change from baseline, and exercise adherence).
+**Steady: a belt, one button, and a family dashboard that bring the CDC's STEADI fall-risk screening into the home, then coach the exercises and count every rep.**
 
-It flags increased fall risk and tracks change from baseline. It does not diagnose anything or say when someone will fall.
+This is fall-risk screening: it flags increased fall risk and tracks change from baseline. It does not diagnose anything, predict when someone will fall, or guarantee prevention. We have not run a trial.
 
-Spec: `docs/COMPETITION.md`. Wiring: `docs/PARTS_LIST.md`. API: `docs/API.md`. Device protocols: `firmware/PROTOCOL.md`.
+> **For judges, start here.** Run it with no hardware in two commands ([Quick start](#quick-start-no-hardware)); a full simulated check-in takes about a minute and a half. The hardware is an ESP32 + MPU-6050 belt and an Arduino base station ([How it works](#how-it-works)). The Grok features are described in [Grok / xAI](#grok--xai).
+
+## The problem
+
+- **About 1 in 4 U.S. adults aged 65+ report a fall each year** (14 million+), and falls are the leading cause of injury death in that age group ([CDC](https://www.cdc.gov/falls/)).
+- **Alert pendants and watch fall detection only act after the fall, and often go unused.** In a UK cohort of people over 90, the person had a call alarm in 99% of falls where they were alone and couldn't get up, but didn't use it in 80% of those falls ([Fleming & Brayne, BMJ 2008](https://doi.org/10.1136/bmj.a2227)).
+- **The CDC already has a prevention playbook, [STEADI](https://www.cdc.gov/steadi/)**: *screen* with three key questions, *assess* gait, strength, and balance with the Timed Up and Go, the 30-second chair stand, and the 4-stage balance test, then *intervene*, including exercise. It is built for a clinic visit, so at home it rarely happens and nobody tracks it between visits.
+- **Exercise works:** a Cochrane review of 108 trials (23,407 people, average age 76) found exercise reduces the rate of falls by about 23%, with high-certainty evidence ([Sherrington et al. 2019](https://doi.org/10.1002/14651858.CD012424.pub2)). A pamphlet doesn't tell the family whether the exercises happened.
+
+Our angle: run the **whole** STEADI loop at home (not just walking or just balance), keep it **screen-free for the older adult** (one button; the base station beeps every cue), and make exercise **sensor-verified**, so the family sees whether it was done. Full background, competitor table, and evidence: [`docs/COMPETITION.md`](docs/COMPETITION.md).
+
+## What it does
+
+| STEADI stage | In the product | How it's measured |
+|---|---|---|
+| **Screen** | The three key questions (fallen in the past year? unsteady? worried about falling?) in the profile | "Yes" to any is a flag |
+| **Assess** | A guided check-in of about 3 minutes, with a family member standing by as STEADI requires: Timed Up and Go, the same walk while naming animals (dual-task), 30-second chair stand, balance stances (feet together, then semi-tandem, then tandem, 10 s each) | Lower-back sensor: TUG time to sit-down, stands counted, hold time and sway per stance. Flags: TUG ≥ 12 s, chair stands below the STEADI average for age and sex, tandem < 10 s. Dual-task cost is tracked against the person's baseline |
+| **Intervene** | Exercise mode: sit-to-stand sets (a beep per rep) and counter-supported balance holds. The plan leans on the weakest area and steps up after enough exercise days | The same sensor counts reps and times holds |
+| **Track** | Family dashboard: fall-risk level (green / amber / red, our own summary of the STEADI flags), trends, change from baseline, exercise adherence, and when to mention it to a doctor | Rolling baseline of recent check-ins; a sustained decline is flagged even without a STEADI flag |
+
+The dashboard has three views: **Home** (plain words for the family), **Check-in** (full-screen step prompts with instruction pictures), and **For the doctor** (every number, the flags, trends, and a printable plain-text summary).
+
+Safety by design: balance is done beside a counter, with no single-leg or eyes-closed stances; the chair stand stops and records 0 if arms are needed (the STEADI rule); the base-station button is a stopwatch fallback if sit-down detection misses; solo exercise is limited to supported moves.
+
+## How it works
+
+**Hardware**
+
+| Part | What it is | Role |
+|---|---|---|
+| Belt | ESP32 + MPU-6050 (6-axis IMU) on an elastic belt at the lower back, USB power bank | Streams accelerometer + gyroscope at 100 Hz over Wi-Fi as UDP broadcast; has its own RGB status LED |
+| Base station | Arduino (Uno R4 or Nano) with a push button, RGB LED, and passive buzzer | The only thing the older adult touches: button to start each step, beeps for "Go" / stop / each rep, LED for the result |
+| Laptop | Runs `checkin serve` | Session controller, scoring, storage, web server |
+| Tablet | Any browser on the same network | Family dashboard |
+| Backup sensor | A phone in a belt pouch running phyphox | Drop-in replacement for the belt |
+
+Every device sits behind an interface, so the simulator and an on-screen base station stand in for anything not plugged in. Parts, pins, and power: [`docs/PARTS_LIST.md`](docs/PARTS_LIST.md). Wire protocols: [`firmware/PROTOCOL.md`](firmware/PROTOCOL.md).
+
+```mermaid
+flowchart LR
+    subgraph belt["Belt (lower back)"]
+        imu["MPU-6050 IMU"] -->|I2C| esp["ESP32"]
+    end
+    phone["Phone + phyphox (backup)"]
+    simsrc["Simulator (labelled Simulated)"]
+    csv["CSV recording replay"]
+
+    subgraph laptop["Laptop: checkin serve (Python)"]
+        src["Motion source interface"]
+        ctl["Session controller: cues each step, tags the stream"]
+        sig["signals.py: TUG time, stands, holds, sway"]
+        steadi["steadi.py: flags, baseline, level, exercise plan"]
+        store[("data/: people JSON, raw CSV recordings")]
+        api["FastAPI: REST + WebSocket + static page"]
+        src --> ctl --> sig --> steadi --> store
+        ctl --> api
+        steadi --> api
+    end
+
+    esp -->|"UDP broadcast, 100 Hz"| src
+    ctl -->|"LED colour (UDP)"| esp
+    phone -->|HTTP| src
+    simsrc --> src
+    csv --> src
+
+    base["Arduino base station: button, LED, buzzer"] <-->|"USB serial: BTN / CUE / LED"| ctl
+    vbase["On-screen base station"] <--> ctl
+
+    api <-->|"HTTP + WebSocket, local network"| tablet["Family dashboard (tablet browser)"]
+    api -.->|"optional family summary (numbers only, no name) and reading it aloud"| grok["xAI Grok API"]
+```
+
+- **The laptop is the session controller.** For each step it sends the "Go" cue to the base station, tags the incoming motion stream with the step, scores the step when it ends, and pushes live state to the dashboard over a WebSocket.
+- **Timing starts on the "Go" cue**, as in the clinical protocol, so the sensor only has to detect the end: the final sit-down (trunk pitch settles and motion stops) for the TUG, rise cycles for chair stands and sit-to-stands, and a departure from the stance posture for balance. Scoring thresholds are named constants at the top of [`src/checkin/signals.py`](src/checkin/signals.py).
+- **Scores are whole-step totals**, so the belt, the phone, and the button don't need sub-second clock alignment.
+- **Local first.** No CDN or web fonts from the network (Chart.js and the font are vendored), JSON files instead of a database, and the dashboard works on an offline access point. The only optional network calls are the Grok family summary and reading it aloud; the spoken check-in cues are committed files.
+- **Every session's raw stream is saved** to `data/recordings/`, so any real session can be re-scored after tuning (`checkin replay`) or played back through the live dashboard.
 
 ## Quick start (no hardware)
+
+Needs [uv](https://docs.astral.sh/uv/) (it fetches Python 3.11 if needed).
 
 ```bash
 uv sync
 uv run checkin serve --source sim --base virtual
 ```
 
-Open http://localhost:8000. Pick **Guest**, set age and sex in the profile, then **Start check-in** and press the on-screen **Button** at each step. The simulated sensor acts out each step when you press. Everything it produces is labelled "Simulated". **Simulated: Dad** shows eight weeks of history.
+Open http://localhost:8000. Everything the simulated sensor produces is labelled "Simulated" on screen, in charts, and in summaries.
 
-Tablet on the same network: http://LAPTOP-IP:8000 (the server listens on all interfaces; macOS asks once to allow incoming connections).
+1. **See a flag and the recovery:** pick the simulated example person (marked Simulated) in the person menu. Eight weeks of simulated check-ins show chair stands slipping from 13 to 10, two amber check-ins, an exercise plan, adherence going up to 5 days a week, and scores recovering. The history is generated on first run so it ends today (`uv run checkin seed` regenerates it).
+2. **Run a check-in:** pick **Guest**, set age and sex in **Edit profile**, press **Start check-in**, then **We're ready: start**. Press **I'm ready** (the on-screen base-station button) at each step; the simulator acts out the step and the page plays the buzzer tones. Results, flags, and change from baseline appear when it finishes.
+3. **Exercise mode:** **Start quick exercise** runs 5 sit-to-stands, with a beep and a count per rep.
+4. **Summaries:** **Make a summary** writes one for the family and one for the doctor. Without an xAI key it uses fixed wording and nothing leaves the laptop.
 
-## Hardware combinations
+On a tablet on the same network, open http://LAPTOP-IP:8000.
 
-Every device sits behind the same interface, so mix and match:
+## Hardware setup
 
-| Sensor (`--source`) | Base station (`--base`) | Use it for |
-|---|---|---|
-| `sim` | `virtual` | Development and a demo with no hardware |
-| `udp` (ESP32 belt) | `virtual` | Belt works, Arduino not wired yet |
-| `udp` (ESP32 belt) | `serial` | The full build |
-| `phyphox:http://PHONE-IP:8080` | `serial` or `virtual` | Backup if the belt fails |
-| `csv:data/recordings/FILE.csv` | either | Replay a real recorded session through the live dashboard |
-| `sim` | `serial` | Test the Arduino on its own |
-
-Settings are flags or environment variables, never code: `--udp-port` / `CHECKIN_UDP_PORT` (default 4210), `--serial-port` / `CHECKIN_SERIAL_PORT`, `--port` (default 8000), `--data` (default `data/`). Optional AI family summary: `XAI_API_KEY` (and `CHECKIN_GROK_MODEL`, default `grok-4.3`); without it the summary uses fixed wording and nothing leaves the laptop.
-
-### 1. Simulator + on-screen base station
+Wiring, firmware upload with `arduino-cli`, every sensor and base-station combination, the phone backup, replaying recordings, and the public demo deploy are in [`docs/HARDWARE.md`](docs/HARDWARE.md). The full build runs with:
 
 ```bash
-uv run checkin serve --source sim --base virtual
-```
-
-The page plays the buzzer tones (click the Button once so the browser allows sound) and shows the LED.
-
-### 2. ESP32 belt (UDP)
-
-Wiring: `docs/PARTS_LIST.md` Section 1 (MPU-6050 VCC→3V3, GND→GND, SDA→GPIO 21, SCL→GPIO 22).
-
-```bash
-cp firmware/esp32_imu/secrets.example.h firmware/esp32_imu/secrets.h   # then put in the hotspot name and password
-arduino-cli compile --fqbn esp32:esp32:esp32 firmware/esp32_imu
-arduino-cli board list                                                  # find the port, e.g. /dev/cu.usbserial-0001
-arduino-cli upload --fqbn esp32:esp32:esp32 -p /dev/cu.usbserial-0001 firmware/esp32_imu
-arduino-cli monitor -p /dev/cu.usbserial-0001 -c baudrate=115200        # expect "MPU-6050 streaming at 100 Hz"
-uv run checkin serve --source udp --base virtual
-```
-
-The dashboard's sensor line should read about 100 Hz. Settings live in `firmware/esp32_imu/config.h`:
-
-- **ESP32-S2/S3/C3 boards:** wire SDA/SCL to any two free pins and set `I2C_SDA`/`I2C_SCL`. Compile with that board's FQBN, e.g. `esp32:esp32:esp32s3`.
-- **Hotspot drops broadcast packets** (sensor stuck at 0 Hz while the serial monitor says it's streaming): set `UDP_TARGET_IP` to the laptop's IP.
-- **Clone chip:** a WHO_AM_I other than 0x68 is reported and ignored.
-- **Other UDP port:** change `UDP_PORT` and pass the same `--udp-port`.
-- **Watch raw packets:** `nc -ul 4210`.
-- **"Brownout detector was triggered":** weak power; use the power bank and a short cable (`docs/PARTS_LIST.md` Section 6).
-
-### 3. Arduino base station (USB serial)
-
-Wiring: `docs/PARTS_LIST.md` Section 2 (button D2→GND, LED R/G/B on D9/D6/D5 via 470 Ω, buzzer on D8 via the transistor on an Uno R4). For a common-anode LED set `COMMON_ANODE = true` in the sketch.
-
-```bash
-arduino-cli compile --fqbn arduino:renesas_uno:minima firmware/base_station   # Uno R4 Minima; arduino:avr:uno or arduino:avr:nano for classic boards
-arduino-cli upload --fqbn arduino:renesas_uno:minima -p /dev/cu.usbmodem1101 firmware/base_station
 uv run checkin serve --source udp --base serial --serial-port /dev/cu.usbmodem1101
 ```
 
-Check it by hand first: `arduino-cli monitor -p /dev/cu.usbmodem1101 -c baudrate=115200`, type `CUE start` (two beeps) and `LED amber`, and press the button (prints `BTN`). On Windows the port is `COM3` or similar.
+Serial port, UDP port (default 4210), and Wi-Fi credentials are settings (flags, environment variables, or `firmware/esp32_imu/secrets.h`), never hard-coded.
 
-### 4. Phone backup (phyphox)
+## Grok / xAI
 
-1. Install phyphox and load `firmware/phyphox/belt-imu.phyphox` (accelerometer + gyroscope at 100 Hz). The built-in "Acceleration with g" experiment also works but has no gyroscope.
-2. Menu → **Allow remote access**. phyphox shows an address like `http://192.168.1.23:8080` (port 80 on iPhones).
-3. Put the phone in a belt pouch at the lower back, any orientation.
+What is built today:
 
-```bash
-uv run checkin serve --source phyphox:http://192.168.1.23:8080 --base serial --serial-port /dev/cu.usbmodem1101
-```
+- **Plain-language family summary.** **Make a summary** sends the doctor summary (numbers only, never the person's name) to a Grok model (`grok-4.3` by default) and asks for 3 to 5 plain sentences for the family. The reply is shown only if it passes guardrails in [`src/checkin/summary.py`](src/checkin/summary.py): no diagnosis, prediction, or guarantee wording, no medical or medication advice, no clinical jargon, and **no number that isn't in the recorded data**. Otherwise, or with no key or no internet, the family gets a fixed-template summary. Set `XAI_API_KEY` to turn it on (`CHECKIN_GROK_MODEL` to change the model).
+- **Instruction pictures.** The pictures on the check-in screen (TUG, chair stand, the three foot positions, sit-to-stand, supported hold) were generated with Grok Imagine by [`scripts/make_images.py`](scripts/make_images.py) and are committed to [`src/checkin/static/img/`](src/checkin/static/img/), so the dashboard needs no network at run time.
 
-### 5. Replay a recording
-
-Every session saves its raw stream to `data/recordings/`. To re-score one (for example after tuning thresholds in `src/checkin/signals.py`):
-
-```bash
-uv run checkin replay data/recordings/20260926-100516-checkin.csv --age 72 --sex female
-```
-
-Or play it back through the live dashboard, one step per button press:
-
-```bash
-uv run checkin serve --source csv:data/recordings/20260926-100516-checkin.csv --base virtual
-```
-
-### 6. Public demo (Render)
-
-A web service on render.com (not Vercel: the app needs a long-running process and a WebSocket). Build command `uv sync --frozen`; start command `uv run checkin serve --source sim --base virtual --demo --port $PORT`. `--demo` makes Guest ready to start (age 72, female) and turns off adding or editing people. Set no environment variables: without `XAI_API_KEY` the summary uses fixed wording and the site makes no paid calls. Data resets whenever the service restarts.
-
-## Running a check-in
-
-1. Profile (step 0): age, sex, and the three STEADI key questions.
-2. Setup per STEADI: an arm chair for the TUG, an armless ~17-inch chair for the chair stand, a 3 m taped line, a counter for balance. A family member stands by for the whole check-in.
-3. **Start check-in.** At each step the helper presses the button when the person is ready. The "Go" beeps start the timing.
-   - During a TUG, a press stops the clock (the stopwatch fallback if sit-down detection misses).
-   - During a balance stance, a press marks the stance as broken.
-   - During the chair stand, **Arms used** stops it and records 0 (STEADI).
-4. Results, flags, and change from baseline appear on the dashboard. The LED shows green/amber/red.
-
-Exercise mode (**Start exercise**) runs the person's plan: sit-to-stand sets (a beep per rep) and counter-supported balance holds. **Quick exercise** runs one set of 5 for demos.
-
-### Spoken cues (Grok Voice)
-
-The check-in screen reads each instruction, the rest beat, and the closing line aloud. The audio is made once with xAI text to speech and committed under `src/checkin/static/audio/`, so the tablet plays it with no internet. Any cue without a file is read by the browser's own voice. Speech never starts or stops a timer: the button and the "Go" buzzer do. Pressing the button mid-sentence stops the voice. **Listen** on the family summary plays it in the Grok voice when `XAI_API_KEY` is set (made on first listen, then cached in `data/audio/`), otherwise in the browser's voice.
+- **Spoken cues (Grok Voice).** The check-in screen reads each instruction, the rest beat, and the closing line aloud. The audio is made once with xAI text to speech by [`scripts/make_voice.py`](scripts/make_voice.py) and committed under [`src/checkin/static/audio/`](src/checkin/static/audio/), so the tablet plays it with no internet; any cue without a file is read by the browser's own voice. Speech never starts or stops a timer: the button and the "Go" buzzer do, and pressing the button mid-sentence stops the voice. **Listen** on the family summary plays it in the Grok voice when `XAI_API_KEY` is set (made on first listen, then cached in `data/audio/`), otherwise in the browser's voice. It only speaks the summary the server wrote. `CHECKIN_VOICE` picks the voice (default `eve`).
 
 ```bash
 uv run python scripts/make_voice.py --dry-run   # the cues it would make, and the cost (18 cues, about $0.04)
 XAI_API_KEY=... uv run python scripts/make_voice.py
 ```
 
-It skips cues that already have a file, so re-running only pays for new or reworded ones (the filename is a hash of the wording and voice). `CHECKIN_VOICE` picks the voice (default `eve`). Commit the new files in `src/checkin/static/audio/`.
+It skips cues that already have a file, so re-running only pays for new or reworded ones (the filename is a hash of the wording and voice). Commit the new files in `src/checkin/static/audio/`.
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Server | Python 3.11, FastAPI + Uvicorn, WebSocket for live state, NumPy for signal processing, pyserial for the base station |
+| Frontend | One static page: vanilla HTML/JS, vendored Chart.js 4.5.1 and Archivo font (OFL), no build step |
+| Storage | JSON files per person and CSV recordings in `data/` (git-ignored) |
+| Firmware | Arduino sketches built with `arduino-cli`: ESP32 belt (UDP), Arduino base station (serial) |
+| AI (optional) | xAI Grok chat completions for the family summary; Grok Imagine for the committed instruction pictures; xAI text to speech for the spoken cues and **Listen** |
+| Tooling | uv, pytest (including a full simulated check-in scored against the simulator's true values), ruff |
+
+## Repo layout
+
+```
+src/checkin/
+  cli.py          checkin serve | replay | seed
+  server.py       FastAPI app: REST API, WebSocket, static page
+  controller.py   session controller: steps, cues, button, live state
+  signals.py      step scoring from the IMU stream (thresholds at the top)
+  steadi.py       STEADI flags, cutoffs, baseline, level, exercise plan, adherence
+  sources.py      motion sources: sim, csv replay, udp (ESP32), phyphox
+  base.py         base stations: virtual (on-screen) and serial (Arduino)
+  sim.py          simulated lower-back IMU with known true scores
+  seed.py         the simulated eight-week example history
+  store.py        people JSON and CSV recordings
+  summary.py      doctor summary, family summary (Grok with guardrails, or template)
+  voice.py        spoken cues and Listen (xAI text to speech, cached)
+  static/         index.html, app.js, instruction pictures, vendored Chart.js and font
+firmware/
+  esp32_imu/      belt: MPU-6050 over I2C, UDP broadcast, status LED
+  base_station/   Arduino: button, RGB LED, buzzer over USB serial
+  imu_test/       bare MPU-6050 wiring check
+  phyphox/        phone backup experiment (accelerometer + gyroscope at 100 Hz)
+  PROTOCOL.md     serial and UDP line formats
+docs/
+  COMPETITION.md  spec: problem, evidence, check-in design, claims, demo script
+  HARDWARE.md     running on real devices
+  PARTS_LIST.md   parts, wiring, power
+  API.md          REST and WebSocket API used by the page
+scripts/
+  make_images.py  regenerate the instruction pictures with Grok Imagine
+  make_voice.py   regenerate the spoken cues with Grok Voice
+tests/            pytest suite
+```
 
 ## Development
 
 ```bash
-uv run pytest            # includes a full simulated check-in scored against the simulator's true values
+uv run pytest
 uv run ruff check .
-uv run checkin seed      # rewrite the "Simulated: Dad" history so it ends today
+uv run checkin replay data/recordings/FILE.csv --age 72 --sex female   # re-score a saved session
 ```
 
-Scoring thresholds are named constants at the top of `src/checkin/signals.py`; tune them on real recordings with `checkin replay`.
+## Limitations
+
+- No trial of this device exists. The exercise evidence comes from structured programs; our coached subset (sit-to-stands, supported balance holds) is the same type of exercise but untested as a program.
+- The scoring approach follows a 2024 lower-back IMU study that matched human raters within about 4% (TUG) and 8% (chair stands). Balance timing agreed least well in that study, so balance is our least certain score.
+- The dual-task step doesn't listen for speech yet; the helper confirms the person kept naming animals.
+- Chair-stand norms start at age 60, so younger people (including judges) are compared with the 60–64 line, labelled "the youngest STEADI group" on the dashboard.
+
+## Team and credits
+
+<!-- TEAM PLACEHOLDER: fill in the three member names, roles, and links. -->
+- **Team:** dh squad (3 members): _names to be added_
+- **Repository:** [github.com/kevinyyin/dhsquad](https://github.com/kevinyyin/dhsquad)
+- Built at HackGT for the Hardware track, the Aramco social good track, and the SpaceXAI / Grok track.
+- Clinical tests and cutoffs: CDC [STEADI](https://www.cdc.gov/steadi/). Charts: [Chart.js](https://www.chartjs.org/) (MIT). Font: Archivo (SIL Open Font License, `src/checkin/static/vendor/archivo-OFL.txt`).

@@ -21,6 +21,7 @@ TUG_TIMEOUT_S = steadi.TUG_TIMEOUT_S
 BALANCE_S = 10.0
 SET_IDLE_S = 8.0  # a sit-to-stand set ends after this long without a new rep
 SET_MAX_S = 120.0
+WARN_EVERY_S = 1.0  # balance: at most one sway-warning beep this often
 PRESS_GUARD_S = 1.0  # a press this soon after the last one taken is a double-tap: ignored
 # A press this soon after "Go" is a nervous "did it start?" press, not the helper stopping the clock or
 # marking a break: ignored, so it can't save a 2 s walk or a "broken" stance that flags balance.
@@ -83,7 +84,8 @@ class Controller:
         self.state = {
             "mode": "idle", "person_id": None, "phase": "idle", "step": None, "prompt": "", "steps": [],
             "live": {}, "led": "off", "base": base.kind, "base_connected": base.connected,
-            "source": {"kind": source.kind, "simulated": source.simulated, "rate_hz": 0.0},
+            "source": {"kind": source.kind, "simulated": source.simulated, "rate_hz": 0.0,
+                       "beeps": getattr(source, "beeps", False)},  # the belt beeps, so the page stays quiet
             "last_record": None,
         }
 
@@ -182,6 +184,8 @@ class Controller:
 
     def _cue(self, name):
         self.base.cue(name)
+        if hasattr(self.source, "cue"):  # the ESP32 belt's own buzzer
+            self.source.cue(name)
         self.on_event({"type": "cue", "name": name})
 
     def _led(self, color):
@@ -389,9 +393,12 @@ class Controller:
         return result
 
     async def _hold(self, sid, kind, prompt, seconds):
-        """A balance stance, timed until it breaks (auto-stop) or `seconds` pass. The button marks a break."""
+        """A balance stance, timed until it breaks (auto-stop) or `seconds` pass. The button marks a break.
+        Safety: swaying past the warning level beeps "warn" (at most every WARN_EVERY_S) so the helper steps
+        in; losing balance ends the stance with "alarm"."""
         t_go = await self._begin(sid, kind, prompt, seconds=seconds)
         next_check = t_go + CHECK_S
+        lost, warned = False, -WARN_EVERY_S
         while True:
             await self.tick()
             self._check_cancel()
@@ -403,9 +410,13 @@ class Controller:
                 break
             if now >= next_check:
                 next_check = now + CHECK_S
-                if signals.balance_hold(*self._window(t_go), t_go, t_go + seconds)[1]:
-                    t_end = now
+                window = self._window(t_go)
+                if signals.balance_hold(*window, t_go, t_go + seconds)[1]:
+                    t_end, lost = now, True
                     break
+                if now - warned >= WARN_EVERY_S and signals.sway_warning(*window, t_go):
+                    warned = now
+                    self._cue("warn")
             if now >= t_go + seconds + 0.2:
                 t_end = t_go + seconds
                 break
@@ -414,7 +425,7 @@ class Controller:
             result.update(broke=True, method="button")
         result.setdefault("method", "sensor")
         result.update(stance=kind.split("_", 1)[1], target_s=seconds)
-        self._end(sid, t_go, t_end, result)
+        self._end(sid, t_go, t_end, result, cue="alarm" if lost else "stop")
         return result
 
     async def _sit_to_stand_set(self, sid, prompt, reps):

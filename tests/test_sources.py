@@ -129,3 +129,21 @@ def test_udp_source_lights_the_belt_led_and_repeats_it():
         belt.recv(64)  # exactly one repeat
     for s in (src, belt, stray):
         s.close()
+
+
+def test_udp_source_sends_cues_to_the_belt_once():
+    src = UdpSource(FakeClock(), port=0, host="127.0.0.1")
+    belt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    belt.bind(("127.0.0.1", 0))
+    belt.settimeout(2.0)
+    src.cue("start")  # nothing heard from the belt yet: dropped, no error
+    belt.sendto(b"1,1000,0.0,0.0,1.0,0.5,0.0,0.0\n", src.sock.getsockname())
+    for _ in range(100):
+        if len(src.read()):
+            break
+    assert belt.recv(64) == b"LED off\n"
+    src.cue("warn")
+    assert belt.recv(64) == b"CUE warn\n"
+    assert src.beeps
+    src.close()
+    belt.close()

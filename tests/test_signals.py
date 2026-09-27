@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from checkin import sim
-from checkin.signals import balance_hold, data_error, score_step, stand_times, tug_end
+from checkin.signals import balance_hold, data_error, score_step, stand_times, sway_warning, tug_end
 
 MOUNTS = [(0, 0, 0), (90, 0, 0), (30, -60, 120)]  # the belt can be worn any way round
 
@@ -119,3 +119,41 @@ def test_lost_packets_at_the_end_of_a_stance_are_not_a_short_hold():
     lost = t < 9.0
     r = score_step("balance_tandem", t[lost], acc[lost], gyro[lost], 0.0, 10.0)
     assert r == {"error": "sensor data dropped out"}  # a longer one is still "not measured", never a flag
+
+
+@pytest.mark.parametrize("stance", ["feet_together", "semi_tandem", "tandem"])
+def test_normal_sway_never_warns(stance):
+    for seed in range(20):
+        p = sim.SimParams(hold_s={s: 60.0 for s in ("feet_together", "semi_tandem", "tandem")},
+                          mount_deg=(30 * (seed % 4), 20, 10))
+        t, acc, gyro, _ = sim.simulate("balance_" + stance, p, seed=seed)
+        for now in np.arange(0.75, 10.0, 0.25):  # as the controller checks it, every 0.25 s
+            k = t <= now
+            assert not sway_warning(t[k], acc[k], gyro[k], 0.0), (seed, now)
+
+
+def test_heavy_sway_warns_before_it_breaks():
+    p = sim.SimParams(hold_s={s: 60.0 for s in ("feet_together", "semi_tandem", "tandem")}, sway=2.0)
+    t, acc, gyro, _ = sim.simulate("balance_tandem", p, seed=0)
+    assert not balance_hold(t, acc, gyro, 0.0, 10.0)[1]  # held: no break
+    assert any(sway_warning(t[t <= now], acc[t <= now], gyro[t <= now], 0.0) for now in np.arange(0.75, 10.0, 0.25))
+
+
+
+@pytest.mark.parametrize("acc_g, gyro_dps", [(0.4, 0.0), (0.0, 80.0), (0.4, 80.0)])
+def test_a_brief_twitch_is_not_a_break(acc_g, gyro_dps):
+    p = sim.SimParams(hold_s={s: 60.0 for s in ("feet_together", "semi_tandem", "tandem")})
+    t, acc, gyro, _ = sim.simulate("balance_tandem", p, seed=0)
+    twitch = (t >= 5.0) & (t < 5.1)  # a 0.1 s jolt: a flinch, a bump to the belt
+    acc[twitch, 0] += acc_g
+    gyro[twitch, 1] += gyro_dps
+    hold, broke, _ = balance_hold(t, acc, gyro, 0.0, 10.0)
+    assert not broke and hold == 10.0
+
+
+def test_fidgeting_at_go_does_not_skew_the_stance():
+    p = sim.SimParams(hold_s={s: 60.0 for s in ("feet_together", "semi_tandem", "tandem")})
+    t, acc, gyro, _ = sim.simulate("balance_feet_together", p, seed=0)
+    settle = (t >= 0.0) & (t < 0.15)  # still shifting weight as the "Go" beep plays
+    acc[settle, 0] += 0.5
+    assert balance_hold(t, acc, gyro, 0.0, 10.0)[:2] == (10.0, False)

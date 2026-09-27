@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Speak every check-in and exercise cue with xAI Grok text to speech, saved as local files.
 
-Reads the key from XAI_API_KEY (voice from CHECKIN_VOICE, default eve). Writes
+Reads the key from XAI_API_KEY (voice from CHECKIN_VOICE, default carina). Writes
 src/checkin/static/audio/<hash>.mp3 and index.json (exact text -> file). A cue whose file already
 exists is skipped, so running it again only pays for new or reworded cues; files no cue uses are removed.
 

@@ -3,6 +3,8 @@ import base64
 import importlib.util
 import io
 import json
+import shutil
+import subprocess
 from datetime import date
 from pathlib import Path
 
@@ -62,12 +64,16 @@ def test_screen_phrases_are_the_pages_own_words():
         assert text in source
 
 
-def test_filenames_follow_the_wording_and_voice():
+def test_filenames_follow_the_wording_and_voice(monkeypatch):
+    monkeypatch.delenv("CHECKIN_VOICE", raising=False)
     names = [voice.filename(t) for t in voice.phrases()]
     assert len(set(names)) == len(names)
     assert voice.filename("Hold still.") == voice.filename("Hold still.")
     assert voice.filename("Hold still.") != voice.filename("Hold still!")
     assert voice.filename("Hold still.", "eve") != voice.filename("Hold still.", "ara")
+    assert voice.DEFAULT_VOICE == "carina"
+    assert voice.filename("Hold still.") == voice.filename("Hold still.", "carina")
+    assert voice.filename("Hold still.") != voice.filename("Hold still.", "eve")
 
 
 def test_the_committed_manifest_matches_the_files():
@@ -76,6 +82,34 @@ def test_the_committed_manifest_matches_the_files():
     for text, name in manifest.items():
         assert text in phrases, "stale cue: run scripts/make_voice.py"
         assert name == voice.filename(text, voice.DEFAULT_VOICE) and (voice.AUDIO / name).exists()
+
+
+def test_browser_fallback_prefers_a_natural_local_voice():
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not installed")
+    script = r"""
+const fs = require("fs");
+const src = fs.readFileSync("src/checkin/static/app.js", "utf8");
+const start = src.indexOf("const HUMAN_VOICE");
+const end = src.indexOf("function browserVoice");
+if (start < 0 || end < 0) throw new Error("voice picker not found");
+const pick = new Function(src.slice(start, end) + "\nreturn pickSpokenVoice;")();
+const v = (name, local, lang = "en-US") => ({ name, voiceURI: name, localService: local, lang });
+const chosen = (voices) => { const p = pick(voices); return p ? p.name : null; };
+const cases = [
+  [[v("Microsoft David Desktop", true), v("Microsoft Zira Desktop", true)], "Microsoft Zira Desktop"],
+  [[v("eSpeak English", true), v("Samantha", true)], "Samantha"],
+  [[v("Microsoft David Desktop", true), v("Google US English", false)], "Google US English"],
+  [[], null],
+];
+for (const [voices, want] of cases) {
+  const got = chosen(voices);
+  if (got !== want) { console.error(JSON.stringify({ got, want })); process.exit(1); }
+}
+"""
+    ran = subprocess.run([node, "-e", script], cwd=ROOT, capture_output=True, text=True)
+    assert ran.returncode == 0, ran.stderr
 
 
 def test_tts_is_skipped_without_a_key(monkeypatch):
@@ -115,6 +149,7 @@ class FakeResponse(io.BytesIO):
      "application/json"),
 ])
 def test_tts_reads_raw_or_base64_audio(monkeypatch, data, kind):
+    monkeypatch.delenv("CHECKIN_VOICE", raising=False)
     sent = {}
 
     def urlopen(req, timeout):
@@ -123,7 +158,8 @@ def test_tts_reads_raw_or_base64_audio(monkeypatch, data, kind):
 
     monkeypatch.setattr(voice.urllib.request, "urlopen", urlopen)
     assert voice.tts("Hello", key="k") == b"ID3raw"
-    assert sent["language"] == "en" and sent["speed"] == voice.SPEED and sent["output_format"]["codec"] == "mp3"
+    assert sent["voice_id"] == "carina" and sent["language"] == "en"
+    assert sent["speed"] == voice.SPEED and sent["output_format"]["codec"] == "mp3"
 
 
 def test_spoken_caches_so_each_text_is_paid_for_once(tmp_path):

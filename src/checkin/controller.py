@@ -176,6 +176,8 @@ class Controller:
 
     def _led(self, color):
         self.base.led(color)
+        if hasattr(self.source, "led"):  # the ESP32 belt's own LED shows the same colour
+            self.source.led(color)
         self.state["led"] = color
 
     def _take_press(self):

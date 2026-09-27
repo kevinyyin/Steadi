@@ -1,4 +1,5 @@
 import socket
+import time
 
 import numpy as np
 import pytest
@@ -96,3 +97,35 @@ def test_phyphox_accelerometer_only_experiment_gives_zero_gyro():
 def test_open_source_rejects_bad_specs(spec):
     with pytest.raises(ValueError):
         open_source(spec, FakeClock())
+
+
+def test_udp_source_lights_the_belt_led_and_repeats_it():
+    clock = FakeClock(t=500.0)
+    src = UdpSource(clock, port=0, host="127.0.0.1")
+    belt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    belt.bind(("127.0.0.1", 0))
+    belt.settimeout(2.0)
+    src.led("blue")  # before the belt has sent anything: nowhere to send yet
+    belt.sendto(b"1,1000,0.0,0.0,1.0,0.5,0.0,0.0\n", src.sock.getsockname())
+    for _ in range(100):
+        if len(src.read()):
+            break
+    assert belt.recv(64) == b"LED blue\n"  # sent as soon as the belt is heard from
+    stray = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    stray.bind(("127.0.0.1", 0))
+    stray.sendto(b"hello\n", src.sock.getsockname())  # not samples: must not take over the LED
+    time.sleep(0.05)
+    src.read()
+    src.led("amber")
+    assert belt.recv(64) == b"LED amber\n"
+    src.read()
+    clock.t += 0.5
+    src.read()  # too soon to repeat
+    clock.t += 0.6
+    src.read()
+    assert belt.recv(64) == b"LED amber\n"  # repeated after LED_REPEAT_S
+    belt.setblocking(False)
+    with pytest.raises(BlockingIOError):
+        belt.recv(64)  # exactly one repeat
+    for s in (src, belt, stray):
+        s.close()

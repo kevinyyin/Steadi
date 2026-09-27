@@ -4,6 +4,7 @@
     act(kind, **kw) -> None   the simulator and CSV replay act out a step from now; hardware ignores it
     close() -> None
     kind: str, simulated: bool
+The ESP32 belt also has led(color): it lights the belt's own RGB LED (firmware/PROTOCOL.md).
 """
 
 import json
@@ -125,10 +126,14 @@ class _ClockMap:
 
 
 class UdpSource:
-    """ESP32 belt: text datagrams of `seq,ms,ax,ay,az,gx,gy,gz` lines (firmware/PROTOCOL.md)."""
+    """ESP32 belt: text datagrams of `seq,ms,ax,ay,az,gx,gy,gz` lines (firmware/PROTOCOL.md).
+
+    led(color) sends `LED <color>` back to wherever the belt's packets come from, and repeats it every
+    LED_REPEAT_S, so a lost datagram or a belt reboot still ends up showing the right colour."""
 
     kind = "udp"
     simulated = False
+    LED_REPEAT_S = 1.0
 
     def __init__(self, clock, port, host="0.0.0.0"):
         self.clock = clock
@@ -139,15 +144,31 @@ class UdpSource:
         self.map = _ClockMap()
         self.last_seq = None
         self.dropped = 0
+        self.belt = None  # (ip, port) the belt's packets come from
+        self.color = "off"
+        self.led_sent = None
 
     def act(self, kind, **kw):
         pass
+
+    def led(self, color):
+        self.color = color
+        self._send_led()
+
+    def _send_led(self):
+        if self.belt is None:
+            return  # nothing heard from the belt yet; sent as soon as it is
+        try:
+            self.sock.sendto(f"LED {self.color}\n".encode(), self.belt)
+        except OSError:
+            pass  # Wi-Fi hiccup: the next repeat tries again
+        self.led_sent = self.clock.now()
 
     def read(self):
         rows = []
         while True:
             try:
-                data, _ = self.sock.recvfrom(65535)
+                data, addr = self.sock.recvfrom(65535)
             except (BlockingIOError, InterruptedError):
                 break
             packet = []
@@ -166,6 +187,9 @@ class UdpSource:
             if packet:
                 self.map.update(packet[-1][0], self.clock.now())
                 rows += packet
+                self.belt = addr  # only a packet of real samples says where the belt is
+        if self.belt and (self.led_sent is None or self.clock.now() - self.led_sent >= self.LED_REPEAT_S):
+            self._send_led()
         if not rows:
             return EMPTY
         rows = np.array(rows)

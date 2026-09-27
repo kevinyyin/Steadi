@@ -1,4 +1,6 @@
 // Belt unit: MPU-6050 at +/-8 g, +/-500 deg/s, 100 Hz through the FIFO, sent as UDP text lines.
+// Its RGB LED shows what the laptop sends back ("LED green" etc.): blue = check-in running,
+// green / amber / red = the fall-risk level of the last check-in.
 // Wiring: docs/PARTS_LIST.md Section 1. Packet format: firmware/PROTOCOL.md. Settings: config.h.
 // Talks to the chip's registers directly, so clone chips with an unexpected WHO_AM_I still work.
 #include <WiFi.h>
@@ -6,6 +8,23 @@
 #include <Wire.h>
 
 #include "config.h"
+
+// RGB LED and buzzer pins (docs/PARTS_LIST.md). Override any of these in config.h.
+#ifndef LED_R_PIN
+#define LED_R_PIN 19
+#endif
+#ifndef LED_G_PIN
+#define LED_G_PIN 18
+#endif
+#ifndef LED_B_PIN
+#define LED_B_PIN 17
+#endif
+#ifndef LED_COMMON_ANODE
+#define LED_COMMON_ANODE false  // true if the LED's long leg goes to 3V3
+#endif
+#ifndef BUZZER_PIN
+#define BUZZER_PIN 16  // held low: the laptop's page plays the cues
+#endif
 
 enum : uint8_t {
   SMPLRT_DIV = 0x19,
@@ -29,7 +48,41 @@ WiFiUDP udp;
 IPAddress unicastIp;
 bool unicast = false;
 bool mpuReady = false;
+bool listening = false;  // udp is bound to UDP_PORT, so the laptop's LED messages reach it
 uint32_t seq = 0;
+
+void writeLed(uint8_t r, uint8_t g, uint8_t b) {
+  if (LED_COMMON_ANODE) {
+    r = 255 - r;
+    g = 255 - g;
+    b = 255 - b;
+  }
+  analogWrite(LED_R_PIN, r);
+  analogWrite(LED_G_PIN, g);
+  analogWrite(LED_B_PIN, b);
+}
+
+void setLed(const char* color) {
+  if (!strncmp(color, "green", 5)) writeLed(0, 255, 0);
+  else if (!strncmp(color, "amber", 5)) writeLed(255, 70, 0);  // tune the green part if it looks too yellow
+  else if (!strncmp(color, "red", 3)) writeLed(255, 0, 0);
+  else if (!strncmp(color, "blue", 4)) writeLed(0, 0, 255);
+  else writeLed(0, 0, 0);  // "off" or anything unknown
+}
+
+// Apply any "LED <color>" lines the laptop sent (firmware/PROTOCOL.md). Never blocks.
+void pollLed() {
+  if (!listening) {
+    if (WiFi.status() != WL_CONNECTED) return;
+    listening = udp.begin(UDP_PORT);
+  }
+  while (udp.parsePacket()) {
+    char buf[32];
+    int n = udp.read(buf, sizeof(buf) - 1);
+    buf[n > 0 ? n : 0] = 0;
+    if (!strncmp(buf, "LED ", 4)) setLed(buf + 4);
+  }
+}
 
 bool writeReg(uint8_t reg, uint8_t val) {
   Wire.beginTransmission(MPU_ADDR);
@@ -95,6 +148,12 @@ void connectWifi() {
 void setup() {
   Serial.begin(115200);
   delay(200);
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
+  pinMode(LED_R_PIN, OUTPUT);
+  pinMode(LED_G_PIN, OUTPUT);
+  pinMode(LED_B_PIN, OUTPUT);
+  setLed("off");
   unicast = strlen(UDP_TARGET_IP) > 0 && unicastIp.fromString(UDP_TARGET_IP);
   Wire.begin(I2C_SDA, I2C_SCL, 400000);
   connectWifi();
@@ -102,6 +161,7 @@ void setup() {
 }
 
 void loop() {
+  pollLed();
   if (!mpuReady) {
     delay(1000);
     mpuReady = setupMpu();

@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import logging
 from datetime import date
 from pathlib import Path
 from typing import Literal
@@ -11,9 +12,10 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import steadi, summary
+from . import steadi, summary, voice
 from .controller import Busy
 
+log = logging.getLogger(__name__)
 STATIC = Path(__file__).parent / "static"
 # Revalidate the page and its files on every load (ETag keeps it cheap): a cached old app.js under a new
 # index.html leaves the page broken until someone hard-refreshes the tablet.
@@ -64,6 +66,7 @@ class StopIn(BaseModel):
 
 def create_app(controller, store, today=date.today, demo=False):
     clients: set[asyncio.Queue] = set()
+    family: dict[str, str] = {}  # person id -> the family summary last served
 
     def broadcast(event):
         for q in list(clients):
@@ -128,7 +131,24 @@ def create_app(controller, store, today=date.today, demo=False):
 
     @app.get("/api/people/{pid}/summary")
     def person_summary(pid: str):
-        return summary.summaries(steadi.dashboard(person_or_404(pid), today()))
+        s = summary.summaries(steadi.dashboard(person_or_404(pid), today()))
+        family[pid] = s["family"]
+        return s
+
+    # Speaks only the summary this server last wrote, so nobody can spend the key on text of their own.
+    @app.get("/api/people/{pid}/summary/audio")
+    def summary_audio(pid: str):
+        person_or_404(pid)
+        if pid not in family:
+            raise HTTPException(404, "make the summary first")
+        try:
+            path = voice.spoken(family[pid], store.root / "audio")
+        except Exception as e:  # offline, bad key, rate limit: the page reads it with the browser's voice
+            log.warning("AI voice unavailable: %s", e)
+            path = None
+        if path is None:
+            raise HTTPException(404, "no AI voice available")
+        return FileResponse(path, media_type="audio/mpeg")
 
     @app.post("/api/session", status_code=202)
     def start_session(body: SessionIn):

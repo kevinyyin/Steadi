@@ -1,7 +1,7 @@
 # Check-in API
 
 Everything the dashboard shows comes from here, so the UI can be rebuilt without touching the backend.
-Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside call is the optional AI family summary (below), which sends the doctor summary text, with no name, to xAI Grok.
+Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside calls are the optional AI family summary (below), which sends the doctor summary text, with no name, to xAI Grok, and reading that family summary aloud on request (`/summary/audio`).
 
 Units: seconds (`_s`), percent (`_pct`), sway in m/s² (RMS horizontal acceleration at the lower back).
 `null` means "not measured" (for example the belt dropped out); it never means zero.
@@ -151,6 +151,12 @@ Two text summaries of the dashboard, for a "summary" panel and for printing befo
 - `family`: 3–5 plain sentences. `family_by` is `"ai"` when a Grok model wrote it from the `doctor` text, or `"template"` (fixed wording) when there's no `XAI_API_KEY`, no internet, or the AI reply failed a check: a number that isn't in the data, a forbidden claim (diagnosis, predicting a fall, guaranteed prevention, medication), or clinical words the family never sees (STEADI, Timed Up and Go, TUG, tandem, sway, baseline, dual-task). The fixed wording names flags the way the Home cards do ("Leg strength: 10 stand-ups from a chair in 30 seconds, fewer than average for men 75–79."); a check-in raised only by a sustained decline "showed a change from usual" rather than "flags increased fall risk", since the decline rule is ours, not STEADI's. Label the AI text as AI-written.
 - With an AI key set, the call can take a few seconds: fetch it when the user asks, not with every dashboard load.
 - `simulated`: the text already starts with "Simulated data." / "SIMULATED DATA"; still show the usual Simulated tag.
+
+### `GET /api/people/{id}/summary/audio`
+
+The last `family` summary this server returned for that person, spoken in a Grok voice (`audio/mpeg`). It only speaks text the server wrote, never text sent by the page. The first request calls xAI text to speech (`CHECKIN_VOICE`, default `eve`). The file is cached in `data/audio/`, so later requests don't call xAI. Returns 404 when no summary has been made yet, or when there's no `XAI_API_KEY` or no internet. On a 404, read the text with the browser's `speechSynthesis` instead. Label it "AI voice".
+
+The check-in cues are static files, not an API: `/static/audio/index.json` maps each prompt's exact text to a file in `/static/audio/`, made by `scripts/make_voice.py`.
 
 ### Check-in record
 

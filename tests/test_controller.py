@@ -322,3 +322,12 @@ def test_heavy_sway_beeps_a_warning_without_ending_the_stance(tmp_path):
     record = drive(ctl, ctl.run_session(person["id"], "exercise", plan))
     assert 1 <= base.cues.count("warn") <= 10  # at most one a second
     assert "alarm" not in base.cues and record["holds"][0]["hold_s"] == 10.0
+
+
+def test_every_emitted_waiting_state_carries_its_prompt(tmp_path):
+    ctl, _, _, _, person = make(tmp_path, sim.SimParams(hold_s=ALL_HOLD))
+    events = []
+    ctl.on_event = events.append
+    drive(ctl, ctl.run_session(person["id"], "checkin"))
+    waiting = [e for e in events if e["type"] == "state" and any(s["status"] == "waiting" for s in e["steps"])]
+    assert waiting and all(e["prompt"] for e in waiting)

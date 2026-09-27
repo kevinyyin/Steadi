@@ -154,7 +154,7 @@ Two text summaries of the dashboard, for a "summary" panel and for printing befo
 
 ### `GET /api/people/{id}/summary/audio`
 
-The last `family` summary this server returned for that person, spoken in a Grok voice (`audio/mpeg`). It only speaks text the server wrote, never text sent by the page. The first request calls xAI text to speech (`CHECKIN_VOICE`, default `eve`). The file is cached in `data/audio/`, so later requests don't call xAI. Returns 404 when no summary has been made yet, or when there's no `XAI_API_KEY` or no internet. On a 404, read the text with the browser's `speechSynthesis` instead. Label it "AI voice".
+The last `family` summary this server returned for that person, spoken in a Grok voice (`audio/mpeg`). It only speaks text the server wrote, never text sent by the page. The first request calls xAI text to speech (`CHECKIN_VOICE`, default `carina`, a soft, soothing voice). The file is cached in `data/audio/`, so later requests don't call xAI. Returns 404 when no summary has been made yet, or when there's no `XAI_API_KEY` or no internet. On a 404, read the text with the browser's `speechSynthesis` instead. Label it "AI voice".
 
 The check-in cues are static files, not an API: `/static/audio/index.json` maps each prompt's exact text to a file in `/static/audio/`, made by `scripts/make_voice.py`.
 

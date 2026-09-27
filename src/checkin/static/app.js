@@ -204,16 +204,41 @@ function hush() {
   if (done) done();
 }
 
+// The system default (often a compact male voice) sounds mechanical. Prefer a local natural English voice.
+const HUMAN_VOICE = /natural|neural|premium|enhanced|aria|jenny|sonia|libby|sara|samantha|karen|moira|serena|fiona|zira|google .+ english/i;
+const HARSH_VOICE = /david|espeak|compact|robot|zarvox|trinoids|boing|whisper|fred|\bmark\b/i;
+
+function pickSpokenVoice(voices) {
+  const en = voices.filter((v) => /^en([-_]|$)/i.test(v.lang));
+  const pool = en.length ? en : voices;
+  const label = (v) => `${v.name} ${v.voiceURI || ""}`;
+  const rank = (v) => (v.localService ? 3 : 0) + (HUMAN_VOICE.test(label(v)) ? 5 : 0) - (HARSH_VOICE.test(label(v)) ? 8 : 0);
+  return pool.slice().sort((a, b) => rank(b) - rank(a) || label(a).localeCompare(label(b)))[0] || null;
+}
+
 function browserVoice(text, finish) {
   if (!window.speechSynthesis) {
     finish();
     return null;
   }
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = "en-US";
-  u.rate = 0.9;
-  u.onend = u.onerror = finish;
-  speechSynthesis.speak(u);
+  let started = false;
+  const start = (force) => {
+    const voices = speechSynthesis.getVoices();
+    if (!voices.length && !force) return;
+    if (started || voiceDone !== finish) return; // hushed, or the voice list arrived twice
+    started = true;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US";
+    u.rate = 0.9;
+    const picked = pickSpokenVoice(voices);
+    if (picked) u.voice = picked;
+    u.onend = u.onerror = finish;
+    speechSynthesis.speak(u);
+  };
+  speechSynthesis.addEventListener("voiceschanged", () => start(false), { once: true });
+  speechSynthesis.getVoices();
+  if (speechSynthesis.getVoices().length) start(false);
+  else setTimeout(() => start(true), 300);
   return "browser";
 }
 

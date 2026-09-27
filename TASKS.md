@@ -105,3 +105,9 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] Listen on the family summary (`/api/people/{id}/summary/audio`, only the served text, cached)
 - [x] Tests, ruff, README, API.md
 - [ ] Generate the audio with a real XAI_API_KEY and commit `src/checkin/static/audio/*.mp3` (no key on the agent VM)
+
+## Soothing voice (2026-09-27)
+
+- [x] Grok TTS default is `carina` (soft, soothing, easy to follow) instead of energetic `eve`
+- [x] Browser fallback prefers a natural English voice over the mechanical system default
+- [ ] Re-run `scripts/make_voice.py` so the committed cues are carina, not eve

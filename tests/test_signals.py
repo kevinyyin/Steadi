@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from checkin import sim
-from checkin.signals import balance_hold, data_error, score_step, stand_times, tug_end
+from checkin.signals import balance_hold, data_error, score_step, stand_times, sway_warning, tug_end
 
 MOUNTS = [(0, 0, 0), (90, 0, 0), (30, -60, 120)]  # the belt can be worn any way round
 
@@ -119,3 +119,22 @@ def test_lost_packets_at_the_end_of_a_stance_are_not_a_short_hold():
     lost = t < 9.0
     r = score_step("balance_tandem", t[lost], acc[lost], gyro[lost], 0.0, 10.0)
     assert r == {"error": "sensor data dropped out"}  # a longer one is still "not measured", never a flag
+
+
+@pytest.mark.parametrize("stance", ["feet_together", "semi_tandem", "tandem"])
+def test_normal_sway_never_warns(stance):
+    for seed in range(20):
+        p = sim.SimParams(hold_s={s: 60.0 for s in ("feet_together", "semi_tandem", "tandem")},
+                          mount_deg=(30 * (seed % 4), 20, 10))
+        t, acc, gyro, _ = sim.simulate("balance_" + stance, p, seed=seed)
+        for now in np.arange(0.75, 10.0, 0.25):  # as the controller checks it, every 0.25 s
+            k = t <= now
+            assert not sway_warning(t[k], acc[k], gyro[k], 0.0), (seed, now)
+
+
+def test_heavy_sway_warns_before_it_breaks():
+    p = sim.SimParams(hold_s={s: 60.0 for s in ("feet_together", "semi_tandem", "tandem")}, sway=2.0)
+    t, acc, gyro, _ = sim.simulate("balance_tandem", p, seed=0)
+    assert not balance_hold(t, acc, gyro, 0.0, 10.0)[1]  # held: no break
+    assert any(sway_warning(t[t <= now], acc[t <= now], gyro[t <= now], 0.0) for now in np.arange(0.75, 10.0, 0.25))
+

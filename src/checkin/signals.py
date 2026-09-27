@@ -17,6 +17,10 @@ MIN_MOVING_S = 3.0  # TUG must move this long before it can end
 RISE_PEAK_MPS = 0.2  # a stand's upward velocity must peak above this
 BREAK_ACC_G = 0.2  # balance: acc departs from the stance posture by this much
 BREAK_GYRO_DPS = 30.0  # balance: or the trunk rotates this fast
+# Balance warning beep ("warn"): sway past these, short of a break. Normal tandem sway in the simulator peaks
+# at 0.12 g, so 0.14 g doesn't beep at someone who's fine. Tune on real recordings.
+WARN_ACC_G = 0.14  # balance: posture this far from the stance (a break is BREAK_ACC_G)
+WARN_GYRO_DPS = 20.0  # balance: or the trunk rotates this fast (a break is BREAK_GYRO_DPS)
 MAX_GAP_S = 0.5  # a longer hole in the data means the sensor dropped out: don't score the step
 CHAIR_STAND_S = 30.0
 
@@ -135,18 +139,34 @@ def stand_times(t, acc, t_go, t_limit=None):
     return out
 
 
-def balance_hold(t, acc, gyro, t_go, t_end):
-    """(hold seconds, broke?, RMS sway m/s²) for a stance timed from "Go" to t_end at most."""
+def _departure(t, acc, gyro, t_go):
+    """From "Go" on: t, acc, how far the posture has moved from the stance (g), trunk rotation (deg/s).
+    The stance is the first 0.5 s after "Go". Needs at least 10 samples after "Go"."""
     keep = t >= t_go
     t, acc, gyro = t[keep], acc[keep], gyro[keep]
-    if len(t) < 10:
-        return 0.0, False, 0.0
     fs = _fs(t)
     first = t < t_go + 0.5
     ref = acc[first].mean(axis=0)
     bias = np.median(gyro[first], axis=0)
     dev = np.linalg.norm(_roll(acc, 0.1, fs) - ref, axis=1)
     rot = _roll(np.linalg.norm(gyro - bias, axis=1), 0.1, fs)
+    return t, acc, dev, rot
+
+
+def sway_warning(t, acc, gyro, t_go, recent_s=0.3):
+    """True if a stance swayed past the warning level in the last `recent_s`: the helper should step in."""
+    if (t >= t_go).sum() < 10 or t[-1] < t_go + 0.5:
+        return False
+    t, _, dev, rot = _departure(t, acc, gyro, t_go)
+    late = t >= t[-1] - recent_s
+    return bool(((dev[late] > WARN_ACC_G) | (rot[late] > WARN_GYRO_DPS)).any())
+
+
+def balance_hold(t, acc, gyro, t_go, t_end):
+    """(hold seconds, broke?, RMS sway m/s²) for a stance timed from "Go" to t_end at most."""
+    if (t >= t_go).sum() < 10:
+        return 0.0, False, 0.0
+    t, acc, dev, rot = _departure(t, acc, gyro, t_go)
     broke = (dev > BREAK_ACC_G) | (rot > BREAK_GYRO_DPS)
     broke &= t <= t_end
     idx = np.flatnonzero(broke)

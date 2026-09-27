@@ -1,6 +1,7 @@
 // Belt unit: MPU-6050 at +/-8 g, +/-500 deg/s, 100 Hz through the FIFO, sent as UDP text lines.
 // Its RGB LED shows what the laptop sends back ("LED green" etc.): blue = check-in running,
-// green / amber / red = the fall-risk level of the last check-in.
+// green / amber / red = the fall-risk level of the last check-in. Its buzzer plays the laptop's cues
+// ("CUE start" etc.), including "warn" (swaying in a balance stance) and "alarm" (balance lost).
 // Wiring: docs/PARTS_LIST.md Section 1. Packet format: firmware/PROTOCOL.md. Settings: config.h.
 // Talks to the chip's registers directly, so clone chips with an unexpected WHO_AM_I still work.
 #include <WiFi.h>
@@ -23,7 +24,10 @@
 #define LED_COMMON_ANODE false  // true if the LED's long leg goes to 3V3
 #endif
 #ifndef BUZZER_PIN
-#define BUZZER_PIN 16  // held low: the laptop's page plays the cues
+#define BUZZER_PIN 16
+#endif
+#ifndef BUZZER_ACTIVE
+#define BUZZER_ACTIVE true  // true: beeps by itself when powered (one pitch); false: passive, driven with tone()
 #endif
 
 enum : uint8_t {
@@ -48,8 +52,59 @@ WiFiUDP udp;
 IPAddress unicastIp;
 bool unicast = false;
 bool mpuReady = false;
-bool listening = false;  // udp is bound to UDP_PORT, so the laptop's LED messages reach it
+bool listening = false;  // udp is bound to UDP_PORT, so the laptop's LED and CUE messages reach it
 uint32_t seq = 0;
+
+// Cue tones from firmware/PROTOCOL.md: {Hz, ms}, 0 Hz = silence. An active buzzer ignores the pitch.
+struct Note {
+  uint16_t hz, ms;
+};
+const Note CUE_START[] = {{2000, 150}, {0, 80}, {3000, 150}};
+const Note CUE_STOP[] = {{1500, 600}};
+const Note CUE_DONE[] = {{2093, 150}, {2637, 150}, {3136, 250}};
+const Note CUE_ERROR[] = {{800, 100}, {0, 80}, {800, 100}, {0, 80}, {800, 100}};
+const Note CUE_REP[] = {{2500, 80}};
+const Note CUE_WARN[] = {{2500, 70}, {0, 70}, {2500, 70}, {0, 70}, {2500, 70}};
+const Note CUE_ALARM[] = {{1000, 250}, {0, 100}, {1000, 250}, {0, 100}, {1000, 250}, {0, 100}, {1000, 250}};
+const Note* playing = nullptr;  // the cue being played, advanced by pollBuzzer() so the loop never waits
+size_t playLen = 0, playIdx = 0;
+uint32_t noteEnd = 0;
+
+void buzz(uint16_t hz) {
+  if (BUZZER_ACTIVE) digitalWrite(BUZZER_PIN, hz ? HIGH : LOW);
+  else if (hz) tone(BUZZER_PIN, hz);
+  else noTone(BUZZER_PIN);
+}
+
+void startCue(const Note* notes, size_t n) {
+  playing = notes;
+  playLen = n;
+  playIdx = 0;
+  buzz(notes[0].hz);
+  noteEnd = millis() + notes[0].ms;
+}
+#define CUE(c) startCue(c, sizeof(c) / sizeof(c[0]))
+
+void playCue(const char* name) {
+  if (!strncmp(name, "start", 5)) CUE(CUE_START);
+  else if (!strncmp(name, "stop", 4)) CUE(CUE_STOP);
+  else if (!strncmp(name, "done", 4)) CUE(CUE_DONE);
+  else if (!strncmp(name, "error", 5)) CUE(CUE_ERROR);
+  else if (!strncmp(name, "rep", 3)) CUE(CUE_REP);
+  else if (!strncmp(name, "warn", 4)) CUE(CUE_WARN);
+  else if (!strncmp(name, "alarm", 5)) CUE(CUE_ALARM);
+}
+
+void pollBuzzer() {
+  if (!playing || (int32_t)(millis() - noteEnd) < 0) return;
+  if (++playIdx >= playLen) {
+    buzz(0);
+    playing = nullptr;
+    return;
+  }
+  buzz(playing[playIdx].hz);
+  noteEnd = millis() + playing[playIdx].ms;
+}
 
 void writeLed(uint8_t r, uint8_t g, uint8_t b) {
   if (LED_COMMON_ANODE) {
@@ -70,8 +125,8 @@ void setLed(const char* color) {
   else writeLed(0, 0, 0);  // "off" or anything unknown
 }
 
-// Apply any "LED <color>" lines the laptop sent (firmware/PROTOCOL.md). Never blocks.
-void pollLed() {
+// Apply any "LED <color>" / "CUE <name>" lines the laptop sent (firmware/PROTOCOL.md). Never blocks.
+void pollLaptop() {
   if (!listening) {
     if (WiFi.status() != WL_CONNECTED) return;
     listening = udp.begin(UDP_PORT);
@@ -81,6 +136,7 @@ void pollLed() {
     int n = udp.read(buf, sizeof(buf) - 1);
     buf[n > 0 ? n : 0] = 0;
     if (!strncmp(buf, "LED ", 4)) setLed(buf + 4);
+    else if (!strncmp(buf, "CUE ", 4)) playCue(buf + 4);
   }
 }
 
@@ -161,7 +217,8 @@ void setup() {
 }
 
 void loop() {
-  pollLed();
+  pollLaptop();
+  pollBuzzer();
   if (!mpuReady) {
     delay(1000);
     mpuReady = setupMpu();

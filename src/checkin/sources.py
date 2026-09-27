@@ -4,7 +4,7 @@
     act(kind, **kw) -> None   the simulator and CSV replay act out a step from now; hardware ignores it
     close() -> None
     kind: str, simulated: bool
-The ESP32 belt also has led(color): it lights the belt's own RGB LED (firmware/PROTOCOL.md).
+The ESP32 belt also has led(color) and cue(name): its own RGB LED and buzzer (firmware/PROTOCOL.md).
 """
 
 import json
@@ -129,10 +129,12 @@ class UdpSource:
     """ESP32 belt: text datagrams of `seq,ms,ax,ay,az,gx,gy,gz` lines (firmware/PROTOCOL.md).
 
     led(color) sends `LED <color>` back to wherever the belt's packets come from, and repeats it every
-    LED_REPEAT_S, so a lost datagram or a belt reboot still ends up showing the right colour."""
+    LED_REPEAT_S, so a lost datagram or a belt reboot still ends up showing the right colour.
+    cue(name) sends `CUE <name>` once: a beep is only worth hearing when it happens."""
 
     kind = "udp"
     simulated = False
+    beeps = True  # the belt's buzzer plays the cues (cue()), so the page doesn't
     LED_REPEAT_S = 1.0
 
     def __init__(self, clock, port, host="0.0.0.0"):
@@ -154,6 +156,13 @@ class UdpSource:
     def led(self, color):
         self.color = color
         self._send_led()
+
+    def cue(self, name):
+        if self.belt is not None:
+            try:
+                self.sock.sendto(f"CUE {name}\n".encode(), self.belt)
+            except OSError:
+                pass
 
     def _send_led(self):
         if self.belt is None:

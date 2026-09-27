@@ -16,6 +16,8 @@ Two links, both plain text so you can watch them with `arduino-cli monitor` or `
 | `CUE done` | Three-note rising melody: the session is saved |
 | `CUE error` | Three quick low beeps: something went wrong (step timed out, sensor dropped out); a cancel plays `stop` |
 | `CUE rep` | One short beep: an exercise rep was counted |
+| `CUE warn` | Three quick high beeps: swaying in a balance stance or hold; the helper should step closer |
+| `CUE alarm` | Four long low beeps: balance lost; the stance stops |
 | `LED off` / `LED blue` / `LED green` / `LED amber` / `LED red` | Blue = session in progress; green/amber/red = the fall-risk level of the last check-in |
 
 **Base station → laptop**
@@ -36,8 +38,10 @@ Two links, both plain text so you can watch them with `arduino-cli monitor` or `
 | done | 2093/150, 2637/150, 3136/250 |
 | error | 800/100, 0/80, 800/100, 0/80, 800/100 |
 | rep | 2500/80 |
+| warn | 2500/70, 0/70, 2500/70, 0/70, 2500/70 |
+| alarm | 1000/250, 0/100, 1000/250, 0/100, 1000/250, 0/100, 1000/250 |
 
-Cues block the Arduino for their length (at most 600 ms), so a button press shorter than a cue can be missed. Nothing in the check-in asks for a press during a cue.
+Cues block the Arduino for their length (at most 1.3 s, the alarm), so a button press shorter than a cue can be missed. Nothing in the check-in asks for a press during a cue. The belt plays cues without blocking.
 
 ## Belt → laptop (UDP)
 
@@ -64,4 +68,4 @@ Watch it live: `nc -ul 4210` (macOS/Linux).
 
 ## Laptop → belt (UDP)
 
-With `--source udp`, the laptop lights the belt's RGB LED: it sends `LED off` / `LED blue` / `LED green` / `LED amber` / `LED red` (same meanings as the base station) back to the address the belt's samples come from, once on every change and again every second, so a lost datagram or a belt reboot still ends up showing the right colour. The belt listens on `UDP_PORT`. Pins: red 19, green 18, blue 17 (override `LED_R_PIN` etc. in `config.h`; `LED_COMMON_ANODE true` for a common-anode LED).
+With `--source udp`, the laptop lights the belt's RGB LED: it sends `LED off` / `LED blue` / `LED green` / `LED amber` / `LED red` (same meanings as the base station) back to the address the belt's samples come from, once on every change and again every second, so a lost datagram or a belt reboot still ends up showing the right colour. It also sends each cue once as `CUE <name>` (the names above), and the belt's buzzer plays it; the page stays quiet then (`state.source.beeps`). The belt listens on `UDP_PORT`. Pins: red 19, green 18, blue 17 (override `LED_R_PIN` etc. in `config.h`; `LED_COMMON_ANODE true` for a common-anode LED).

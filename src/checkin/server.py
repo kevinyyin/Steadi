@@ -238,13 +238,22 @@ def create_app(controller, store, today=date.today, demo=False):
             raise HTTPException(409, "this walk's animals are already counted")
         if not ai.ai_enabled():
             raise HTTPException(503, "Grok is off")
+        if sample and not controller.source.simulated:
+            raise HTTPException(400, "the sample recording is only for a simulated check-in")
         if int(request.headers.get("content-length") or 0) > animals.MAX_BYTES:
             raise HTTPException(413, "recording too long")
+        # Claimed before the first await, so uploads sent at the same time can't each make a call.
+        controller.add_to_step(session_id, step, result, {"animals": {"status": "counting", "simulated": sample}})
         if sample:
             data, mime = animals.SAMPLE.read_bytes(), "audio/mpeg"
         else:
-            data, mime = await request.body(), request.headers.get("content-type") or "audio/webm"
-        controller.add_to_step(session_id, step, result, {"animals": {"status": "counting", "simulated": sample}})
+            data, mime = b"", request.headers.get("content-type") or "audio/webm"
+            async for chunk in request.stream():  # a chunked upload has no Content-Length to check up front
+                data += chunk
+                if len(data) > animals.MAX_BYTES:
+                    gone = {"status": "not_counted", "reason": "recording too long", "simulated": False}
+                    controller.add_to_step(session_id, step, result, {"animals": gone})
+                    raise HTTPException(413, "recording too long")
         counted = {**await asyncio.to_thread(animals.count_audio, data, mime), "simulated": sample}
         controller.add_to_step(session_id, step, result, {"animals": counted})
         return counted

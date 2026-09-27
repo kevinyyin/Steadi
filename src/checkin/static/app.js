@@ -546,7 +546,7 @@ function renderDone(s) {
     const chip = (id) => (flagged.has(id) ? (r.level === "red" ? "chip red" : "chip") : null);
     plainRow(list, "Stand up and walk", m.tug_timed_out ? "Didn't finish within 60 seconds" : secs(m.tug_s), "h3", chip("tug"));
     plainRow(list, "Walk again, naming animals", secs(m.dual_tug_s));
-    plainRow(list, "Animals named on that walk", animalsText(steps.dual_tug, true));
+    if (steps.dual_tug?.animals) plainRow(list, "Animals named on that walk", animalsText(steps.dual_tug, true));
     plainRow(list, "Stand up from the chair", steps.chair_stand?.arms_used ? "Stopped: arms were needed"
       : m.chair_stands === null ? "Not measured" : `${m.chair_stands} times in 30 seconds`, "h3", chip("chair_stand"));
     // The balance flag belongs to the stance that ended the balance steps.
@@ -637,6 +637,7 @@ const SAMPLE_CLIP = "/static/sample/animals-walk.mp3";
 const micOk = () => !!(window.isSecureContext && navigator.mediaDevices && window.MediaRecorder);
 let animalsMode = null; // "mic" or "sample" for the check-in this page started; null: not counted
 let recording = null; // a promise of stop(), which resolves to the audio Blob or "sample"
+let animalsRun = false; // a session was seen running since animalsMode was chosen
 
 function animalsText(step, list = false) {
   const a = step && step.animals;
@@ -665,6 +666,7 @@ function renderAnimalsOptin() {
 // Called from the "We're ready" click, so the permission prompt comes before the walk, not during it.
 async function chooseAnimals() {
   animalsMode = null;
+  animalsRun = false;
   if (!animalsOffered() || !$("animals-on").checked) return;
   if (state.source.simulated && $("animals-sample").checked) {
     animalsMode = "sample";
@@ -680,6 +682,7 @@ async function chooseAnimals() {
 }
 
 async function startRecording() {
+  hush(); // never record the page's own voice
   if (animalsMode === "sample") {
     const clip = new Audio(SAMPLE_CLIP); // the room hears what's sent
     clip.play().catch(() => {});
@@ -725,7 +728,10 @@ function animalsCue(name) {
 
 function renderAnimals(s) {
   renderAnimalsOptin();
-  if (s.phase !== "running") {
+  // Only a session ending clears the choice: an idle state can still arrive between "We're ready" and the start.
+  if (s.phase === "running") animalsRun = true;
+  else if (animalsRun) {
+    animalsRun = false;
     stopRecording(false); // cancelled or failed mid-walk: nothing is sent
     animalsMode = null;
   }
@@ -1107,7 +1113,7 @@ function renderResults(latest, t) {
     { name: "Timed Up and Go", flag: "tug", key: "tug_s", v: m.tug_s, unit: "s", text: m.tug_timed_out ? "Did not finish" : null,
       rule: `STEADI flags ${c.tug_s} s or more`, note: howNote(steps.tug), spark: t.series.tug_s },
     { name: "TUG naming animals", v: m.dual_tug_s, unit: "s", rule: "Ours, not STEADI: tracked vs. baseline",
-      note: howNote(steps.dual_tug, Object.keys(steps).length ? animalsText(steps.dual_tug) : "") },
+      note: howNote(steps.dual_tug, steps.dual_tug?.animals ? animalsText(steps.dual_tug) : "") },
     { name: "Dual-task cost", key: "dual_task_cost_pct", v: m.dual_task_cost_pct, unit: "%",
       rule: "Ours, not STEADI: tracked vs. baseline", spark: t.series.dual_task_cost_pct },
     { name: "30-second chair stand", flag: "chair_stand", key: "chair_stands", v: m.chair_stands, unit: "stands",

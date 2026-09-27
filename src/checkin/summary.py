@@ -138,7 +138,8 @@ def doctor(dash):
         f"- Timed Up and Go: {tug} (flags at {_num(cut['tug_s'], ' s')} or more{_change(ch, 'tug_s')})",
         f"- Timed Up and Go while naming animals: {_num(m['dual_tug_s'], ' s')}; dual-task cost "
         f"{_num(m['dual_task_cost_pct'], '%')}{_change(ch, 'dual_task_cost_pct')}",
-        f"- Animals named on that walk (our measure, not a STEADI test): {animals_line(steps.get('dual_tug'))}",
+        *([f"- Animals named on that walk (our measure, not a STEADI test): {animals_line(steps['dual_tug'])}"]
+          if (steps.get("dual_tug") or {}).get("animals") else []),  # only when the family opted in
         f"- 30-second chair stand: {chair} ({chair_rule}{_change(ch, 'chair_stands')})",
         f"- Balance stances held (target 10 s): feet together {stance('feet_together')}, "
         f"semi-tandem {stance('semi_tandem')}, tandem {stance('tandem')} "

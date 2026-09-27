@@ -19,7 +19,7 @@ from . import ai
 STT_URL = "https://api.x.ai/v1/stt"
 DEFAULT_MODEL = "grok-voice-transcribe-2.0"
 TIMEOUT_S = 30
-MAX_BYTES = 10_000_000  # a minute of compressed speech is well under 1 MB
+MAX_BYTES = 2_000_000  # the 60 s walk limit of compressed speech is well under 1 MB
 SAMPLE = Path(__file__).parent / "static" / "sample" / "animals-walk.mp3"  # Simulated: a synthetic voice
 WINDOW_S = 10.0
 

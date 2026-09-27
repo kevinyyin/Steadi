@@ -208,6 +208,19 @@ def test_sample_clip_after_the_checkin_is_saved_is_labelled_simulated(client, gr
     assert walk["animals"]["simulated"] is True and walk["animals"]["named"] == 3
 
 
+def test_an_oversized_chunked_upload_is_refused_without_a_call(client, grok_stt, monkeypatch):
+    monkeypatch.setattr("checkin.animals.MAX_BYTES", 10)
+    client.post("/api/people", json=PROFILE)
+    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    run_to_done(client)
+    chunks = iter([b"x" * 8, b"x" * 8])  # no Content-Length: sent chunked
+    assert client.post("/api/audio/dual_tug", content=chunks).status_code == 413
+    assert client.post("/api/audio/dual_tug", content=b"WEBM").status_code == 409  # this walk's one try is used
+    assert grok_stt == []
+    walk = client.get("/api/people/judge/dashboard").json()["latest"]["steps"]["dual_tug"]
+    assert walk["animals"] == {"status": "not_counted", "reason": "recording too long", "simulated": False}
+
+
 def test_animal_count_respects_the_grok_switch(client, grok_stt):
     client.post("/api/people", json=PROFILE)
     client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
@@ -232,8 +245,7 @@ def test_animals_without_a_key_are_not_counted_and_the_walk_stands(client, monke
     assert client.post("/api/audio/tug", content=b"x").status_code == 404
     latest = client.get("/api/people/judge/dashboard").json()["latest"]
     assert "animals" not in latest["steps"]["dual_tug"] and latest["metrics"]["dual_task_cost_pct"] is not None
-    assert "Animals named on that walk (our measure, not a STEADI test): not counted." in \
-        client.get("/api/people/judge/summary").json()["doctor"]
+    assert "Animals named" not in client.get("/api/people/judge/summary").json()["doctor"]  # never opted in
 
 
 def test_state_says_not_demo_by_default(client):

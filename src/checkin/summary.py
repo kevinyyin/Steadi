@@ -2,7 +2,7 @@
 
 The doctor summary is built only from the recorded numbers. The family summary is written by a Grok
 model from that same text (no name sent), and is used only if it passes the checks below; otherwise, or
-with no key or no internet, the family gets a fixed-template summary. Ask Steady answers the family's
+with no key or no internet, the family gets a fixed-template summary. Ask Steadi answers the family's
 questions from the same text under the same checks. Settings: XAI_API_KEY, CHECKIN_GROK_MODEL, CHECKIN_AI
 (see ai.py).
 """
@@ -260,7 +260,7 @@ def _simulated(dash):
 
 
 def answer(dash, question, ask=None):
-    """Ask Steady: {"by": "ai" | "blocked" | "template", "answer", "summary", "reason", "simulated"}.
+    """Ask Steadi: {"by": "ai" | "blocked" | "template", "answer", "summary", "reason", "simulated"}.
 
     "ai": Grok's reply passed check(). "blocked": the question asks for a prediction or diagnosis, or the
     reply failed check(); the family sees CANT_ANSWER and the template summary. "template": Grok is off,
@@ -277,12 +277,12 @@ def answer(dash, question, ask=None):
     try:
         text = (ask or grok_ask)(ASK_SYSTEM, f"Check-in results:\n{facts}\n\nQuestion: {question}")
     except Exception as e:
-        log.warning("Ask Steady unavailable: %s", e)
+        log.warning("Ask Steadi unavailable: %s", e)
         return out
     if not text:
         return out
     problem = check(text, facts)
     if problem:
-        log.warning("Ask Steady reply rejected (%s): %s", problem, text)
+        log.warning("Ask Steadi reply rejected (%s): %s", problem, text)
         return {**out, "by": "blocked", "answer": CANT_ANSWER, "reason": problem}
     return {**out, "by": "ai", "answer": sim + text, "summary": None}

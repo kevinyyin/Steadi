@@ -73,7 +73,7 @@ let newPerson = false; // the profile form is adding a person, not editing this 
 let lastPerson = null;
 let hasCheckin = false;
 let making = false;
-let aiStatus = null; // GET /api/ai; null until loaded, then Ask Steady stays hidden unless it's on
+let aiStatus = null; // GET /api/ai; null until loaded, then Ask Steadi stays hidden unless it's on
 let asking = false;
 let everOnline = false; // the first failed connection says "can't connect", later ones "lost the connection"
 const LAST_PERSON = "checkin.person"; // this browser reopens on the person it showed last
@@ -1320,7 +1320,7 @@ async function copyText(text, b, label) {
   setTimeout(() => (b.textContent = label), 2000);
 }
 
-// ---- Grok: one switch (GET/PUT /api/ai) for the summary, Ask Steady and every other AI call ------------
+// ---- Grok: one switch (GET/PUT /api/ai) for the summary, Ask Steadi and every other AI call ------------
 async function loadAi() {
   renderAi(await api("GET", "/api/ai"));
 }
@@ -1348,7 +1348,7 @@ function clearAsk() {
   $("ask-tag").replaceChildren();
 }
 
-async function askSteady(e) {
+async function askSteadi(e) {
   e.preventDefault();
   const q = $("ask-q").value.trim();
   if (asking || !q) return;
@@ -1507,7 +1507,7 @@ $("add-person").onclick = () => ($("profile-panel").hidden || !newPerson ? openP
 $("close-profile").onclick = () => closeProfile();
 $("make-summary").onclick = makeSummary;
 $("make-summary-doctor").onclick = makeSummary;
-$("ask-form").onsubmit = askSteady;
+$("ask-form").onsubmit = askSteadi;
 $("ai-toggle").onclick = () => run(async () => renderAi(await api("PUT", "/api/ai", { on: !aiStatus.on })));
 $("copy-summary").onclick = () => copyText($("family-text").textContent, $("copy-summary"), "Copy summary");
 $("listen-summary").onclick = listenSummary;

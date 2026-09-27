@@ -176,7 +176,7 @@ def grok(monkeypatch):
     ai.set_enabled(True)
 
 
-def test_ask_steady_over_the_api(client, grok):
+def test_ask_steadi_over_the_api(client, grok):
     r = client.post("/api/people/sim-dad/ask", json={"question": "How is his balance?"})
     assert r.status_code == 200 and r.json()["by"] == "ai" and len(grok) == 1
     client.post("/api/people/sim-dad/ask", json={"question": "how is his  balance?"})
@@ -197,7 +197,7 @@ def test_the_grok_switch_turns_every_call_off(client, grok):
     assert client.get("/api/people/sim-dad/summary").json()["family_by"] == "ai"
 
 
-def test_ask_steady_is_off_without_a_key(client, monkeypatch):
+def test_ask_steadi_is_off_without_a_key(client, monkeypatch):
     monkeypatch.delenv("XAI_API_KEY", raising=False)
     assert client.get("/api/ai").json()["blocked_by"] == "no key"
     assert client.post("/api/people/sim-dad/ask", json={"question": "How is his balance?"}).status_code == 503

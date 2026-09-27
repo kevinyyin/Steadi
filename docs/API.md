@@ -1,7 +1,7 @@
 # Check-in API
 
 Everything the dashboard shows comes from here, so the UI can be rebuilt without touching the backend.
-Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside calls are the optional AI family summary and Ask Steady (below), which send the doctor summary text, with no name, to xAI Grok, and reading that family summary aloud on request (`/summary/audio`); `CHECKIN_AI=off` or the dashboard's Grok switch stops them.
+Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside calls are the optional AI family summary and Ask Steadi (below), which send the doctor summary text, with no name, to xAI Grok, and reading that family summary aloud on request (`/summary/audio`); `CHECKIN_AI=off` or the dashboard's Grok switch stops them.
 
 Units: seconds (`_s`), percent (`_pct`), sway in m/s² (RMS horizontal acceleration at the lower back).
 `null` means "not measured" (for example the belt dropped out); it never means zero.
@@ -153,7 +153,7 @@ Two text summaries of the dashboard, for a "summary" panel and for printing befo
 - With an AI key set, the call can take a few seconds: fetch it when the user asks, not with every dashboard load.
 - `simulated`: the text already starts with "Simulated data." / "SIMULATED DATA"; still show the usual Simulated tag.
 
-### `POST /api/people/{id}/ask` (Ask Steady)
+### `POST /api/people/{id}/ask` (Ask Steadi)
 
 Body `{"question": "Is he doing his exercises?"}` (1–200 characters). Grok answers in 1–3 sentences from the `doctor` summary text only (no name sent), and the reply goes through the same checks as the family summary.
 
@@ -167,7 +167,7 @@ Body `{"question": "Is he doing his exercises?"}` (1–200 characters). Grok ans
 
 ### `GET /api/ai`, `PUT /api/ai`
 
-The one switch for every Grok call (family summary, Ask Steady, and later AI features: server code checks `checkin.ai.ai_enabled()`). `GET` returns `{"on": true, "available": true, "blocked_by": null}`; `blocked_by` is `"no key"` (no `XAI_API_KEY`) or `"setting"` (`CHECKIN_AI=off`), and then `on` stays false. `PUT {"on": false}` switches it until the server restarts, and broadcasts an `ai` event.
+The one switch for every Grok call (family summary, Ask Steadi, and later AI features: server code checks `checkin.ai.ai_enabled()`). `GET` returns `{"on": true, "available": true, "blocked_by": null}`; `blocked_by` is `"no key"` (no `XAI_API_KEY`) or `"setting"` (`CHECKIN_AI=off`), and then `on` stays false. `PUT {"on": false}` switches it until the server restarts, and broadcasts an `ai` event.
 
 ### `GET /api/people/{id}/summary/audio`
 

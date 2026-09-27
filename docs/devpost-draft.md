@@ -66,7 +66,7 @@ The public demo at https://dhsquad.onrender.com runs on the simulator. Every val
 
 **Hardware**
 
-- Belt: an ESP32 with an MPU-6050 IMU (±8 g, ±500 °/s). It reads the sensor's FIFO at 100 Hz and broadcasts UDP over Wi-Fi. A USB power bank powers it, and it is worn at the lower back. The laptop sends LED colours and cues back to the belt. The belt's RGB LED shows them without interrupting the sensor stream: blue while a session is running, then green, amber, or red for the level. The belt's buzzer plays the same cues, including the sway warning and the loss-of-balance alarm, without blocking the 100 Hz stream.
+- Belt: an ESP32 with an MPU-6050 IMU (±8 g, ±500 °/s). It reads the sensor's FIFO at 100 Hz and broadcasts UDP over Wi-Fi. A USB power bank powers it, and it is worn at the lower back. The laptop sends LED colours and cues back to the belt. The belt's RGB LED shows them without interrupting the sensor stream: blue while a session is running, then green, amber, or red for the level. When the sensor is the belt, its buzzer plays the same cues, including the sway warning and the loss-of-balance alarm, without blocking the 100 Hz stream. Otherwise the base station or the page plays them.
 - Base station: an Arduino Uno R4 on a breadboard with a start button, an RGB LED, and a buzzer for cues and rep beeps. It talks to the laptop over USB serial with a small text protocol (`CUE start`, `LED amber`, `BTN`).
 - Backup sensor: a phone in a belt pouch running a custom phyphox experiment.
 
@@ -102,7 +102,7 @@ The swappable device interfaces kept those agents from getting in each other's w
 
 **Detecting the end of a Timed Up and Go.** The STEADI protocol times from "Go" to seated, so we had to find the sit-down and tell it apart from a pause while standing. We compare the posture with the seated posture before "Go", and a button press remains a stopwatch fallback.
 
-**Balance scoring.** Our first detector ended a stance on any flinch or bump to the belt. A break now has to last 0.3 seconds, the signal is smoothed, and the reference is the posture at the start of the hold. Sustained sway plays a warning beep before a real loss of balance ends the stance with an alarm. A missing tail of sensor data is scored as not measured. A button press can still mark a break.
+**Balance scoring.** Our first detector ended a stance on any flinch or bump to the belt. A break now has to last 0.3 seconds, the signal is averaged over a quarter second, and the reference is the posture in the first half second of the hold. Sustained sway plays a warning beep before a real loss of balance ends the stance with an alarm. A missing tail of sensor data is scored as not measured. A button press can still mark a break.
 
 **Messy input.** Late packets at the end of a step, short gaps in the Wi-Fi stream, a double-tap on the button, and a stray press right after "Go" each had to be ignored or scored as not measured. The belt keeps streaming at 100 Hz while it plays cues and updates its light.
 

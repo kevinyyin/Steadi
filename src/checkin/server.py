@@ -1,8 +1,10 @@
 """FastAPI app: the JSON + WebSocket API in docs/API.md, plus the static dashboard."""
 
 import asyncio
+import collections
 import contextlib
 import logging
+import time
 from datetime import date
 from pathlib import Path
 from typing import Literal
@@ -12,7 +14,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import steadi, summary, voice
+from . import ai, steadi, summary, voice
 from .controller import Busy
 
 log = logging.getLogger(__name__)
@@ -62,6 +64,17 @@ class SessionIn(BaseModel):
 
 class StopIn(BaseModel):
     reason: Literal["arms_used", "cancel"]
+
+
+class AskIn(BaseModel):
+    question: str = Field(min_length=1, max_length=200)
+
+
+class AiIn(BaseModel):
+    on: bool
+
+
+ASK_PER_MINUTE = 10  # the xAI budget is shared: a stuck key or a public page can't run it down
 
 
 def create_app(controller, store, today=date.today, demo=False):
@@ -149,6 +162,43 @@ def create_app(controller, store, today=date.today, demo=False):
         if path is None:
             raise HTTPException(404, "no AI voice available")
         return FileResponse(path, media_type="audio/mpeg")
+
+    asked = collections.deque()  # times of recent Grok-bound questions
+    answers = {}  # (person, latest check-in, question) -> reply, so a rehearsed question costs one call
+
+    @app.post("/api/people/{pid}/ask")
+    def ask(pid: str, body: AskIn):
+        dash = steadi.dashboard(person_or_404(pid), today())
+        if not ai.ai_enabled():
+            raise HTTPException(503, "Grok is off")
+        question = " ".join(body.question.split())
+        key = (pid, summary.doctor(dash), question.lower())  # new exercise days change the answer too
+        if key in answers:
+            return answers[key]
+        now = time.monotonic()
+        while asked and now - asked[0] > 60:
+            asked.popleft()
+        if summary.ASK_FORBIDDEN.search(question) or not dash["latest"]:
+            return summary.answer(dash, question)  # never sent to Grok, so it costs nothing
+        if len(asked) >= ASK_PER_MINUTE:
+            raise HTTPException(429, "Too many questions in a minute. Try again shortly.")
+        asked.append(now)
+        out = summary.answer(dash, question)
+        if out["by"] != "template":  # a failed call isn't cached, so it's tried again
+            answers[key] = out
+        return out
+
+    @app.get("/api/ai")
+    def ai_status():
+        return ai.status()
+
+    @app.put("/api/ai")
+    async def set_ai(body: AiIn):  # async: broadcast() isn't thread-safe
+        not_in_demo()  # a public visitor can't switch Grok for everyone; the demo host uses CHECKIN_AI
+        ai.set_enabled(body.on)
+        out = ai.status()
+        broadcast({"type": "ai", **out})
+        return out
 
     @app.post("/api/session", status_code=202)
     def start_session(body: SessionIn):

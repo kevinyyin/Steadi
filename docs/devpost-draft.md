@@ -166,6 +166,14 @@ Three teammates narrate, and Allen does the physical demo.
 
 Film the check-in on the real belt. Label any simulator footage "Simulated". After an amber or red result, say "flags increased fall risk".
 
+### Try it out
+
+Devpost form field. Do not paste this note into the story.
+
+https://dhsquad.onrender.com
+
+That is the only try-it-out link. The site is up: it serves the dashboard in demo mode, Guest can start a check-in, and the sensor is the simulator. Put https://github.com/kevinyyin/dhsquad in the repository field.
+
 ---
 
 ## Tagline
@@ -206,6 +214,36 @@ If a judge is already holding the belt, start one sentence later: "A belt at the
 
 The 4% and 8% figures in What we learned are the published lower-back IMU study in `docs/COMPETITION.md` ("within ~4% on TUG and ~8% on chair stands"), not our own agreement numbers. "Agreement was about 4%" reads as 4% agreement. The draft says "within about 4%".
 
+## Image gallery
+
+Devpost: JPG, PNG, or GIF, 5 MB each, up to 15 images, 3:2. Export at 2400×1600 (or 1800×1200). Keep the subject in the middle third, because a 4:3 shot will be cropped. A 2400×1600 JPG is far under 5 MB.
+
+There is no CAD in the repo. The only images on hand are seven instruction drawings in `src/checkin/static/img/`, each 1152×864 (4:3, about 100 KB). Use them as one combined frame (slot 9), not as seven gallery slots.
+
+Upload in this order. Slot 1 is the thumbnail judges see in the project gallery, so it has to be the hardware. Eight or nine strong frames beat fifteen thin ones.
+
+| # | What | How |
+|---|---|---|
+| 1 | Cover. Belt on the lower back, base station and tablet in the same frame. Person from the side or back. | Photo. This is the thumbnail. |
+| 2 | Belt close-up: ESP32, MPU-6050, power bank, RGB lit. | Photo. |
+| 3 | Base station: the one button, the RGB LED, the buzzer, on the breadboard. | Photo. |
+| 4 | Check-in on the tablet: one large instruction and the foot picture. | Screenshot or a straight-on photo of the tablet. If it is the simulator, the word Simulated has to be in the frame. |
+| 5 | Result in plain words, and the light green, amber, or red. Belt or base station light in the same shot if you can. | Photo. |
+| 6 | Exercise: sit-to-stands with the rep count on screen and the base station in frame. | Photo. |
+| 7 | Home, "Simulated: Dad": a flag, the trend, and the Simulated label. | Screenshot from https://dhsquad.onrender.com. |
+| 8 | For the doctor: the results table, or a photo of the one-page printout on paper. | Screenshot, or a photo of the paper. The paper is the better of the two. |
+| 9 | The three foot-position drawings on one 3:2 board. | Compose from the JPGs already in the repo. Pad them onto a 3:2 canvas. A center crop of the 4:3 files cuts the feet. |
+
+Optional, and only if you still have room:
+
+| # | What | How |
+|---|---|---|
+| 10 | CAD, one image. The belt's placement on the body, or a mount you actually use. | Render at 3:2. If the part is not built, put the word Design in the corner. An unlabelled render of a case that is not on the table will be read as the prototype. Skip the CAD if it does not show placement better than slot 1. |
+| 11 | The test station: arm chair, the 3 m tape line, the armless chair, the counter. | Photo. |
+| 12 | One GIF under 5 MB: the chair-stand count ticking, or the LED changing colour. A few seconds, looped. | GIF. One only. |
+
+Leave out stat slides, a Cursor window, a wiring diagram, the phone-in-a-pouch backup, and the seven instruction drawings as separate images. The phone backup makes the "why not a phone app?" answer harder. The Cursor story belongs in the video.
+
 ## Left open
 
 - Team names. The deck you described lists Kevin Yin and James Wang, and Allen runs the physical demo. Confirm the Devpost team before submitting. Nothing here invents a third name.
@@ -213,4 +251,4 @@ The 4% and 8% figures in What we learned are the published lower-back IMU study 
 - Spoken cues ship as the browser's voice until someone runs `scripts/make_voice.py` with the xAI key and commits the audio.
 - Counting the animals named on the dual-task walk is an open pull request, not in this tree. It stays under What's next.
 - Per-unit cost. `docs/COMPETITION.md` still says to fill this in before judging.
-- The public URL https://dhsquad.onrender.com is the one in the draft. This pass did not load the live site.
+- Image files for the gallery. The shot list is above. Photos of the belt, the base station, and a person wearing the belt still have to be taken. There is no CAD file in the repo to render.

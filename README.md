@@ -143,7 +143,7 @@ It skips cues that already have a file, so re-running only pays for new or rewor
 
 ```
 src/checkin/
-  cli.py          checkin serve | replay | seed
+  cli.py          checkin serve | replay | seed | validate
   server.py       FastAPI app: REST API, WebSocket, static page
   controller.py   session controller: steps, cues, button, live state
   signals.py      step scoring from the IMU stream (thresholds at the top)
@@ -155,6 +155,8 @@ src/checkin/
   store.py        people JSON and CSV recordings
   summary.py      doctor summary, family summary (Grok with guardrails, or template)
   voice.py        spoken cues and Listen (xAI text to speech, cached)
+  validate.py     belt vs stopwatch/hand count: ground-truth CSV, agreement stats
+  report.py       validation charts (SVG, PNG) and an offline HTML report
   static/         index.html, app.js, instruction pictures, vendored Chart.js and font
 firmware/
   esp32_imu/      belt: MPU-6050 over I2C, UDP broadcast, status LED
@@ -167,6 +169,7 @@ docs/
   HARDWARE.md     running on real devices
   PARTS_LIST.md   parts, wiring, power
   API.md          REST and WebSocket API used by the page
+  VALIDATION.md   protocol for checking the belt against a stopwatch
 scripts/
   make_images.py  regenerate the instruction pictures with Grok Imagine
   make_voice.py   regenerate the spoken cues with Grok Voice
@@ -179,6 +182,16 @@ tests/            pytest suite
 uv run pytest
 uv run ruff check .
 uv run checkin replay data/recordings/FILE.csv --age 72 --sex female   # re-score a saved session
+```
+
+## Checking the belt against a stopwatch
+
+Protocol and ground-truth format: [`docs/VALIDATION.md`](docs/VALIDATION.md). After recording check-ins with a timer beside the walker:
+
+```bash
+uv run checkin validate --template                              # blank rows in data/validation/ground_truth.csv
+uv run checkin validate data/validation/ground_truth.csv        # agreement charts in data/validation/report/
+uv run checkin validate --simulated                             # preview on simulated data (labelled Simulated)
 ```
 
 ## Limitations

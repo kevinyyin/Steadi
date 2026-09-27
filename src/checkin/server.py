@@ -1,18 +1,20 @@
 """FastAPI app: the JSON + WebSocket API in docs/API.md, plus the static dashboard."""
 
 import asyncio
+import collections
 import contextlib
 import logging
+import time
 from datetime import date
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import steadi, summary, voice
+from . import ai, animals, steadi, summary, voice
 from .controller import Busy
 
 log = logging.getLogger(__name__)
@@ -64,6 +66,17 @@ class StopIn(BaseModel):
     reason: Literal["arms_used", "cancel"]
 
 
+class AskIn(BaseModel):
+    question: str = Field(min_length=1, max_length=200)
+
+
+class AiIn(BaseModel):
+    on: bool
+
+
+ASK_PER_MINUTE = 10  # the xAI budget is shared: a stuck key or a public page can't run it down
+
+
 def create_app(controller, store, today=date.today, demo=False):
     clients: set[asyncio.Queue] = set()
     family: dict[str, str] = {}  # person id -> the family summary last served
@@ -74,6 +87,7 @@ def create_app(controller, store, today=date.today, demo=False):
 
     controller.on_event = broadcast
     controller.state["demo"] = demo  # the page hides Add a person and Edit profile
+    controller.state["stt"] = animals.available()  # the page offers the animal count only while Grok is on
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
@@ -150,6 +164,45 @@ def create_app(controller, store, today=date.today, demo=False):
             raise HTTPException(404, "no AI voice available")
         return FileResponse(path, media_type="audio/mpeg")
 
+    asked = collections.deque()  # times of recent Grok-bound questions
+    answers = {}  # (person, latest check-in, question) -> reply, so a rehearsed question costs one call
+
+    @app.post("/api/people/{pid}/ask")
+    def ask(pid: str, body: AskIn):
+        dash = steadi.dashboard(person_or_404(pid), today())
+        if not ai.ai_enabled():
+            raise HTTPException(503, "Grok is off")
+        question = " ".join(body.question.split())
+        key = (pid, summary.doctor(dash), question.lower())  # new exercise days change the answer too
+        if key in answers:
+            return answers[key]
+        now = time.monotonic()
+        while asked and now - asked[0] > 60:
+            asked.popleft()
+        if summary.ASK_FORBIDDEN.search(question) or not dash["latest"]:
+            return summary.answer(dash, question)  # never sent to Grok, so it costs nothing
+        if len(asked) >= ASK_PER_MINUTE:
+            raise HTTPException(429, "Too many questions in a minute. Try again shortly.")
+        asked.append(now)
+        out = summary.answer(dash, question)
+        if out["by"] != "template":  # a failed call isn't cached, so it's tried again
+            answers[key] = out
+        return out
+
+    @app.get("/api/ai")
+    def ai_status():
+        return ai.status()
+
+    @app.put("/api/ai")
+    async def set_ai(body: AiIn):  # async: broadcast() isn't thread-safe
+        not_in_demo()  # a public visitor can't switch Grok for everyone; the demo host uses CHECKIN_AI
+        ai.set_enabled(body.on)
+        controller.state["stt"] = animals.available()
+        out = ai.status()
+        broadcast({"type": "ai", **out})
+        controller._emit()  # state.stt follows the switch, so the animal-count offer updates with it
+        return out
+
     @app.post("/api/session", status_code=202)
     def start_session(body: SessionIn):
         try:
@@ -171,6 +224,39 @@ def create_app(controller, store, today=date.today, demo=False):
     def stop(body: StopIn):
         controller.stop(body.reason)
         return {"ok": True}
+
+    # One recording per finished walk, so nobody can spend the key on audio of their own.
+    @app.post("/api/audio/{step}")
+    async def step_audio(step: str, request: Request, sample: bool = False):
+        if step != "dual_tug":
+            raise HTTPException(404, "only the walk while naming animals is recorded")
+        found = controller.finished_step(step)
+        if not found:
+            raise HTTPException(409, "no finished walk to add this to")
+        session_id, result = found
+        if "animals" in result:
+            raise HTTPException(409, "this walk's animals are already counted")
+        if not ai.ai_enabled():
+            raise HTTPException(503, "Grok is off")
+        if sample and not controller.source.simulated:
+            raise HTTPException(400, "the sample recording is only for a simulated check-in")
+        if int(request.headers.get("content-length") or 0) > animals.MAX_BYTES:
+            raise HTTPException(413, "recording too long")
+        # Claimed before the first await, so uploads sent at the same time can't each make a call.
+        controller.add_to_step(session_id, step, result, {"animals": {"status": "counting", "simulated": sample}})
+        if sample:
+            data, mime = animals.SAMPLE.read_bytes(), "audio/mpeg"
+        else:
+            data, mime = b"", request.headers.get("content-type") or "audio/webm"
+            async for chunk in request.stream():  # a chunked upload has no Content-Length to check up front
+                data += chunk
+                if len(data) > animals.MAX_BYTES:
+                    gone = {"status": "not_counted", "reason": "recording too long", "simulated": False}
+                    controller.add_to_step(session_id, step, result, {"animals": gone})
+                    raise HTTPException(413, "recording too long")
+        counted = {**await asyncio.to_thread(animals.count_audio, data, mime), "simulated": sample}
+        controller.add_to_step(session_id, step, result, {"animals": counted})
+        return counted
 
     @app.websocket("/ws")
     async def ws(socket: WebSocket):

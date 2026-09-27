@@ -97,6 +97,16 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] Check-in: each step's local picture beside the instruction, plus the exercise pictures
 - [x] Family summary calls xAI Grok (`XAI_API_KEY`, `CHECKIN_GROK_MODEL`); same checks and template fallback
 
+## Hardware validation report
+
+- [x] Read diagram-design skill; map it onto the dashboard's tokens (Archivo, ink/blue, white paper)
+- [x] Static Archivo 400/700 TTFs for PNG export (resvg can't read woff2)
+- [x] `src/checkin/validate.py`: ground-truth CSV, template, pairing, agreement stats, simulated set
+- [x] `src/checkin/report.py`: SVG charts, PNG export, offline HTML page
+- [x] CLI `checkin validate`; tests; ruff
+- [x] docs/VALIDATION.md protocol + README pointer
+- [x] End-to-end on simulated data; copy sample images to the project store media/validation/
+
 ## Grok Voice cues (2026-09-27)
 
 - [x] `voice.py`: phrase list from the controller's own prompts, hashed filenames, xAI TTS call, cache
@@ -111,3 +121,17 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] Grok TTS default is `carina` (soft, soothing, easy to follow) instead of energetic `eve`
 - [x] Browser fallback prefers a natural English voice over the mechanical system default
 - [ ] Re-run `scripts/make_voice.py` so the committed cues are carina, not eve
+
+## Devpost draft
+
+Checked against `main` at `9b760cd`. Paste-ready copy: `docs/devpost-draft.md`.
+
+- [x] Tagline (73 characters) and a 90-word elevator pitch under it
+- [x] Inspiration, what it does, how we built it, challenges, accomplishments, learned, what's next, built with, track fit, video script
+- [x] Simek 2012 wording checked: 21% fully adherent (95% CI 15–29%), not "stick with a home program"
+- [x] $80 billion kept as non-fatal falls, 2020; CDC "every second, an older adult falls"; about 41,000 deaths
+- [x] Updated for belt beeps, the sway warning, the 0.3 s balance break, Grok Voice, Ask Steady, the Grok switch, `checkin validate`, the animal count, and the carina voice; no belt button
+- [x] Try it out: https://dhsquad.onrender.com returns the dashboard (`demo: true`, simulator). GitHub stays in the repository field.
+- [x] Gallery plan: 3:2, 5 MB, up to 15; nine slots, CAD only as an optional later frame. No CAD file in the repo.
+- [ ] Team names, stopwatch agreement numbers, per-unit cost
+- [ ] Gallery photos: belt on a person, belt close-up, base station, result light, exercise reps

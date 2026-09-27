@@ -15,7 +15,7 @@ import os
 import urllib.request
 from pathlib import Path
 
-from . import steadi
+from . import ai, steadi
 from .controller import CHECKIN_STEPS, READY, hold_prompt, sit_to_stand_prompt
 
 TTS_URL = "https://api.x.ai/v1/tts"
@@ -66,7 +66,9 @@ def load_manifest(path=MANIFEST):
 
 
 def tts(text, key=None, voice=None):
-    """MP3 bytes, or None with no API key. Raises on network or API errors."""
+    """MP3 bytes, or None with no API key or Grok switched off. Raises on network or API errors."""
+    if key is None and not ai.ai_enabled():  # the server follows the Grok switch; make_voice.py passes its key
+        return None
     key = key or os.environ.get("XAI_API_KEY")
     if not key:
         return None

@@ -147,8 +147,154 @@ def test_demo_blocks_adding_and_editing_people(tmp_path):
         assert c.get("/api/state").json()["demo"] is True
         assert c.post("/api/people", json=PROFILE).status_code == 403
         assert c.put("/api/people/sim-dad", json=PROFILE).status_code == 403
+        assert c.put("/api/ai", json={"on": False}).status_code == 403  # one visitor can't switch Grok for all
         assert c.get("/api/people/sim-dad/dashboard").status_code == 200
+
+
+SAID = "cat dog horse dog".split()
+TRANSCRIPT = {"text": " ".join(SAID), "duration": 8.0,
+              "words": [{"text": w, "start": i * 2.0, "end": i * 2.0 + 0.5} for i, w in enumerate(SAID)]}
+
+
+@pytest.fixture
+def grok_stt(monkeypatch):
+    from checkin import ai
+
+    calls = []
+    monkeypatch.setenv("XAI_API_KEY", "test-key")
+    monkeypatch.delenv("CHECKIN_AI", raising=False)
+    monkeypatch.setattr("checkin.animals.stt", lambda data, mime: calls.append((data, mime)) or TRANSCRIPT)
+    ai.set_enabled(True)
+    yield calls
+    ai.set_enabled(True)
+
+
+def press_until(client, done, timeout_s=60):
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        state = client.get("/api/state").json()
+        if done(state):
+            return state
+        if any(s["status"] == "waiting" for s in state["steps"]):
+            client.post("/api/button")
+    raise AssertionError("never reached")
+
+
+def test_animals_counted_once_during_the_checkin_and_saved_with_it(client, grok_stt):
+    client.post("/api/people", json=PROFILE)
+    assert client.post("/api/audio/dual_tug", content=b"x").status_code == 409  # no walk yet
+    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    press_until(client, lambda s: any(x["id"] == "dual_tug" and x["status"] == "done" for x in s["steps"]))
+    r = client.post("/api/audio/dual_tug", content=b"WEBM", headers={"Content-Type": "audio/webm;codecs=opus"})
+    assert r.status_code == 200 and r.json()["named"] == 3 and r.json()["simulated"] is False
+    assert client.post("/api/audio/dual_tug", content=b"WEBM").status_code == 409  # one call per walk
+    assert grok_stt == [(b"WEBM", "audio/webm;codecs=opus")]
+    run_to_done(client)
+    walk = client.get("/api/people/judge/dashboard").json()["latest"]["steps"]["dual_tug"]
+    assert walk["animals"]["list"] == ["cat", "dog", "horse"] and walk["animals"]["repeats"] == 1
+    assert walk["tug_s"] > 0  # the walk time is untouched
+    assert "Animals named on that walk (our measure, not a STEADI test): 3 (1 repeat)" in \
+        client.get("/api/people/judge/summary").json()["doctor"]
+
+
+def test_sample_clip_after_the_checkin_is_saved_is_labelled_simulated(client, grok_stt):
+    client.post("/api/people", json=PROFILE)
+    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    run_to_done(client)
+    r = client.post("/api/audio/dual_tug?sample=true")
+    assert r.status_code == 200 and r.json()["simulated"] is True
+    assert grok_stt[0][1] == "audio/mpeg" and grok_stt[0][0][:3] in (b"ID3", b"\xff\xfb")
+    walk = client.get("/api/people/judge/dashboard").json()["latest"]["steps"]["dual_tug"]
+    assert walk["animals"]["simulated"] is True and walk["animals"]["named"] == 3
+
+
+def test_an_oversized_chunked_upload_is_refused_without_a_call(client, grok_stt, monkeypatch):
+    monkeypatch.setattr("checkin.animals.MAX_BYTES", 10)
+    client.post("/api/people", json=PROFILE)
+    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    run_to_done(client)
+    chunks = iter([b"x" * 8, b"x" * 8])  # no Content-Length: sent chunked
+    assert client.post("/api/audio/dual_tug", content=chunks).status_code == 413
+    assert client.post("/api/audio/dual_tug", content=b"WEBM").status_code == 409  # this walk's one try is used
+    assert grok_stt == []
+    walk = client.get("/api/people/judge/dashboard").json()["latest"]["steps"]["dual_tug"]
+    assert walk["animals"] == {"status": "not_counted", "reason": "recording too long", "simulated": False}
+
+
+def test_animal_count_respects_the_grok_switch(client, grok_stt):
+    client.post("/api/people", json=PROFILE)
+    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    run_to_done(client)
+    assert client.put("/api/ai", json={"on": False}).json()["on"] is False
+    assert client.get("/api/state").json()["stt"] is False  # the page stops offering it
+    assert client.post("/api/audio/dual_tug?sample=true").status_code == 503
+    assert grok_stt == []  # the switch stops the speech-to-text call
+    assert client.put("/api/ai", json={"on": True}).json()["on"] is True
+    assert client.get("/api/state").json()["stt"] is True
+    assert client.post("/api/audio/dual_tug?sample=true").status_code == 200
+    assert len(grok_stt) == 1
+
+
+def test_animals_without_a_key_are_not_counted_and_the_walk_stands(client, monkeypatch):
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
+    assert client.get("/api/state").json()["stt"] is False  # the page doesn't offer it
+    client.post("/api/people", json=PROFILE)
+    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    run_to_done(client)
+    assert client.post("/api/audio/dual_tug?sample=true").status_code == 503
+    assert client.post("/api/audio/tug", content=b"x").status_code == 404
+    latest = client.get("/api/people/judge/dashboard").json()["latest"]
+    assert "animals" not in latest["steps"]["dual_tug"] and latest["metrics"]["dual_task_cost_pct"] is not None
+    assert "Animals named" not in client.get("/api/people/judge/summary").json()["doctor"]  # never opted in
 
 
 def test_state_says_not_demo_by_default(client):
     assert client.get("/api/state").json()["demo"] is False
+
+
+@pytest.fixture
+def grok(monkeypatch):
+    """A key is set and every Grok call is answered here instead of by xAI."""
+    from checkin import ai, summary
+
+    monkeypatch.setenv("XAI_API_KEY", "test-key")
+    monkeypatch.delenv("CHECKIN_AI", raising=False)
+    calls = []
+
+    def fake(system, user):
+        if not ai.ai_enabled():
+            return None
+        calls.append(user)
+        return "Balance was held for the full time at the last check-in."
+
+    monkeypatch.setattr(summary, "grok_ask", fake)
+    ai.set_enabled(True)
+    yield calls
+    ai.set_enabled(True)
+
+
+def test_ask_steady_over_the_api(client, grok):
+    r = client.post("/api/people/sim-dad/ask", json={"question": "How is his balance?"})
+    assert r.status_code == 200 and r.json()["by"] == "ai" and len(grok) == 1
+    client.post("/api/people/sim-dad/ask", json={"question": "how is his  balance?"})
+    assert len(grok) == 1  # the same question again is answered from memory
+    r = client.post("/api/people/sim-dad/ask", json={"question": "Will Dad fall this year?"})
+    assert r.json()["by"] == "blocked" and r.json()["summary"] and len(grok) == 1
+    assert client.post("/api/people/sim-dad/ask", json={"question": ""}).status_code == 422
+    assert client.post("/api/people/nobody/ask", json={"question": "Hi?"}).status_code == 404
+
+
+def test_the_grok_switch_turns_every_call_off(client, grok):
+    assert client.get("/api/ai").json() == {"on": True, "available": True, "blocked_by": None}
+    assert client.put("/api/ai", json={"on": False}).json()["on"] is False
+    assert client.post("/api/people/sim-dad/ask", json={"question": "How is his balance?"}).status_code == 503
+    assert client.get("/api/people/sim-dad/summary").json()["family_by"] == "template"
+    assert grok == []
+    client.put("/api/ai", json={"on": True})
+    assert client.get("/api/people/sim-dad/summary").json()["family_by"] == "ai"
+
+
+def test_ask_steady_is_off_without_a_key(client, monkeypatch):
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
+    assert client.get("/api/ai").json()["blocked_by"] == "no key"
+    assert client.post("/api/people/sim-dad/ask", json={"question": "How is his balance?"}).status_code == 503

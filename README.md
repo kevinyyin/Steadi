@@ -115,6 +115,8 @@ Serial port, UDP port (default 4210), and Wi-Fi credentials are settings (flags,
 What is built today:
 
 - **Plain-language family summary.** **Make a summary** sends the doctor summary (numbers only, never the person's name) to a Grok model (`grok-4.3` by default) and asks for 3 to 5 plain sentences for the family. The reply is shown only if it passes guardrails in [`src/checkin/summary.py`](src/checkin/summary.py): no diagnosis, prediction, or guarantee wording, no medical or medication advice, no clinical jargon, and **no number that isn't in the recorded data**. Otherwise, or with no key or no internet, the family gets a fixed-template summary. Set `XAI_API_KEY` to turn it on (`CHECKIN_GROK_MODEL` to change the model).
+- **Ask Steady.** With a key, Home has a question box ("Is he doing his exercises?"). Grok answers in 1 to 3 sentences from the same doctor summary text, and the reply passes the same guardrails before it's shown, labelled AI-written. Questions that need a prediction, diagnosis or medical advice ("Will Dad fall this year?") are never sent; they, and any reply that fails a check, get "I can only answer from the check-in results" plus the fixed-wording summary.
+- **Grok on/off.** The footer on every view reads "Grok: on" or "Grok: off (works offline)", with **Turn Grok off** / **Turn Grok on**. `CHECKIN_AI=off` turns every Grok call off for good. With Grok off, nothing leaves the laptop and everything else works the same.
 - **Instruction pictures.** The pictures on the check-in screen (TUG, chair stand, the three foot positions, sit-to-stand, supported hold) were generated with Grok Imagine by [`scripts/make_images.py`](scripts/make_images.py) and are committed to [`src/checkin/static/img/`](src/checkin/static/img/), so the dashboard needs no network at run time.
 
 - **Spoken cues (Grok Voice).** The check-in screen reads each instruction, the rest beat, and the closing line aloud. The audio is made once with xAI text to speech by [`scripts/make_voice.py`](scripts/make_voice.py) and committed under [`src/checkin/static/audio/`](src/checkin/static/audio/), so the tablet plays it with no internet; any cue without a file is read by the browser's own voice. Speech never starts or stops a timer: the button and the "Go" buzzer do, and pressing the button mid-sentence stops the voice. **Listen** on the family summary plays it in the Grok voice when `XAI_API_KEY` is set (made on first listen, then cached in `data/audio/`), otherwise in the browser's voice. It only speaks the summary the server wrote. `CHECKIN_VOICE` picks the voice (default `carina`, a soft, soothing voice that stays easy to follow). The browser fallback, used when that recording isn't ready, prefers a natural English voice over the mechanical system default.
@@ -134,14 +136,14 @@ It skips cues that already have a file, so re-running only pays for new or rewor
 | Frontend | One static page: vanilla HTML/JS, vendored Chart.js 4.5.1 and Archivo font (OFL), no build step |
 | Storage | JSON files per person and CSV recordings in `data/` (git-ignored) |
 | Firmware | Arduino sketches built with `arduino-cli`: ESP32 belt (UDP), Arduino base station (serial) |
-| AI (optional) | xAI Grok chat completions for the family summary; Grok Imagine for the committed instruction pictures; xAI text to speech for the spoken cues and **Listen** |
+| AI (optional) | xAI Grok chat completions for the family summary and Ask Steady; Grok Imagine for the committed instruction pictures; xAI text to speech for the spoken cues and **Listen**; Grok speech to text to count animals named on the dual-task walk |
 | Tooling | uv, pytest (including a full simulated check-in scored against the simulator's true values), ruff |
 
 ## Repo layout
 
 ```
 src/checkin/
-  cli.py          checkin serve | replay | seed
+  cli.py          checkin serve | replay | seed | validate
   server.py       FastAPI app: REST API, WebSocket, static page
   controller.py   session controller: steps, cues, button, live state
   signals.py      step scoring from the IMU stream (thresholds at the top)
@@ -152,7 +154,10 @@ src/checkin/
   seed.py         the simulated eight-week example history
   store.py        people JSON and CSV recordings
   summary.py      doctor summary, family summary (Grok with guardrails, or template)
+  animals.py      animals named on the dual-task walk (Grok speech to text, then a local word list)
   voice.py        spoken cues and Listen (xAI text to speech, cached)
+  validate.py     belt vs stopwatch/hand count: ground-truth CSV, agreement stats
+  report.py       validation charts (SVG, PNG) and an offline HTML report
   static/         index.html, app.js, instruction pictures, vendored Chart.js and font
 firmware/
   esp32_imu/      belt: MPU-6050 over I2C, UDP broadcast, status LED
@@ -165,6 +170,7 @@ docs/
   HARDWARE.md     running on real devices
   PARTS_LIST.md   parts, wiring, power
   API.md          REST and WebSocket API used by the page
+  VALIDATION.md   protocol for checking the belt against a stopwatch
 scripts/
   make_images.py  regenerate the instruction pictures with Grok Imagine
   make_voice.py   regenerate the spoken cues with Grok Voice
@@ -179,11 +185,21 @@ uv run ruff check .
 uv run checkin replay data/recordings/FILE.csv --age 72 --sex female   # re-score a saved session
 ```
 
+## Checking the belt against a stopwatch
+
+Protocol and ground-truth format: [`docs/VALIDATION.md`](docs/VALIDATION.md). After recording check-ins with a timer beside the walker:
+
+```bash
+uv run checkin validate --template                              # blank rows in data/validation/ground_truth.csv
+uv run checkin validate data/validation/ground_truth.csv        # agreement charts in data/validation/report/
+uv run checkin validate --simulated                             # preview on simulated data (labelled Simulated)
+```
+
 ## Limitations
 
 - No trial of this device exists. The exercise evidence comes from structured programs; our coached subset (sit-to-stands, supported balance holds) is the same type of exercise but untested as a program.
 - The scoring approach follows a 2024 lower-back IMU study that matched human raters within about 4% (TUG) and 8% (chair stands). Balance timing agreed least well in that study, so balance is our least certain score.
-- The dual-task step doesn't listen for speech yet; the helper confirms the person kept naming animals.
+- Counting the animals named on the dual-task walk is opt-in. Record it in the laptop browser at `http://localhost:8000` with a close mic; a tablet opened over the LAN cannot use the microphone. The simulator can play a bundled sample clip instead (labelled Simulated). With Grok off, no recording, or no opt-in, that line says "Animals: not counted" and the walk time is unchanged.
 - Chair-stand norms start at age 60, so younger people (including judges) are compared with the 60–64 line, labelled "the youngest STEADI group" on the dashboard.
 
 ## Team and credits

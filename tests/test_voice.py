@@ -117,6 +117,20 @@ def test_tts_is_skipped_without_a_key(monkeypatch):
     assert voice.tts("Hello") is None
 
 
+def test_tts_follows_the_grok_switch(monkeypatch):
+    from checkin import ai
+
+    monkeypatch.setenv("XAI_API_KEY", "k")
+    monkeypatch.setattr(voice.urllib.request, "urlopen", lambda *a, **k: pytest.fail("called xAI"))
+    ai.set_enabled(False)
+    try:
+        assert voice.tts("Hello") is None
+    finally:
+        ai.set_enabled(True)
+    monkeypatch.setenv("CHECKIN_AI", "off")
+    assert voice.tts("Hello") is None
+
+
 class FakeResponse(io.BytesIO):
     def __init__(self, data, kind):
         super().__init__(data)

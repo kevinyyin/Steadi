@@ -1,6 +1,6 @@
-# Devpost draft: Steady (HackGT 13)
+# Devpost draft: Steadi (HackGT 13)
 
-Checked against `main` at `9b760cd` (27 Sep 2026): firmware, scoring, the exercise plan, the dashboard, and the docs in this repo. The pitch deck (`internal/pitch-deck.pdf`) was not in the clone, so deck lines below are the ones in the draft you pasted.
+Checked against `main` at `2994190` (27 Sep 2026): firmware, scoring, the exercise plan, the dashboard, Grok in the product, and the judge README. The pitch deck (`internal/pitch-deck.pdf`) was not in the clone, so deck lines below are the ones in the earlier draft.
 
 Paste everything under **Submit this**. The notes after that are for the team.
 
@@ -12,7 +12,7 @@ Claims follow `CLAUDE.md`: "fall-risk screening", "flags increased fall risk", "
 
 ### Project name
 
-Steady
+Steadi
 
 ### Tagline
 
@@ -24,119 +24,64 @@ The CDC's fall-risk tests, scored by a belt at home. Check. Coach. Share.
 
 Put this directly under the tagline. **What it does** opens with the same paragraph, so the project page reads tagline, then pitch.
 
-Steady brings the CDC's fall-risk screening home. A belt worn at the lower back and a one-button base station run the tests in about three minutes, with a family member standing by. The belt times the walk, counts chair stands, and times each balance hold. It flags increased fall risk, tracks change from baseline, and coaches strength and balance moves, counting every rep so the family can see the exercise happened. Home is the trend in plain words. For the doctor is one page to take to the next visit.
+Steadi brings the CDC's fall-risk screening home. A belt worn at the lower back and a one-button base station run the tests in about three minutes, with a family member standing by. The belt times the walk, counts chair stands, and times each balance hold. It flags increased fall risk, tracks change from baseline, and coaches strength and balance moves, counting every rep so the family can see the exercise happened. Home is the trend in plain words. For the doctor is one page to take to the next visit.
 
 90 words.
 
 ### Inspiration
 
-Every second, an older adult falls (CDC). Falls are the leading cause of injury death for adults 65 and older, about 41,000 deaths a year (CDC). Medical costs for non-fatal falls were about $80 billion in 2020 (Haddad et al., Injury Prevention 2024).
+Every second, an older adult falls (CDC). Falls are the leading cause of injury death after 65: about 41,000 deaths a year, and about $80 billion in medical costs for non-fatal falls in 2020.
 
-Today's devices notice a fall after it happens. In one study, 80% of the oldest adults who had a personal alarm did not use it when they fell alone and could not get up (Fleming and Brayne, BMJ 2008). Exercise reduces the rate of falls by 23% (Cochrane review, 108 trials, 23,407 people). A review of home exercise programs for preventing falls found that 21% of participants were fully adherent to the prescribed dose (Simek, McPhate, and Haines, Preventive Medicine 2012; 23 trials; 95% CI 15% to 29%).
+Today's devices notice a fall after it happens. In one study, 80% of the oldest adults with a personal alarm did not use it when they fell alone and could not get up (Fleming and Brayne, BMJ 2008). Exercise reduces the rate of falls by 23% (Cochrane, 108 trials), but only 21% of participants in home programs were fully adherent to the prescribed dose (Simek, McPhate, and Haines, Preventive Medicine 2012).
 
-Clinicians already have the playbook. The CDC's STEADI algorithm screens with three key questions, assesses with three short tests (Timed Up and Go, the 30-second chair stand, and a balance test), and then intervenes with exercise. That happens in a clinic, maybe once a year. We wanted to run the same screening at home every week, confirm the exercises actually happen, and let the family see the trend.
+The CDC's STEADI playbook already screens, assesses, and then recommends exercise. That happens in a clinic, maybe once a year. We run the same screening at home every week, confirm the exercises happen, and show the family the trend.
 
 ### What it does
 
-Steady brings the CDC's fall-risk screening home. A belt worn at the lower back and a one-button base station run the tests in about three minutes, with a family member standing by. The belt times the walk, counts chair stands, and times each balance hold. It flags increased fall risk, tracks change from baseline, and coaches strength and balance moves, counting every rep so the family can see the exercise happened. Home is the trend in plain words. For the doctor is one page to take to the next visit.
+A belt at the lower back and a one-button base station. In about three minutes, with a family member standing by, Steadi runs the CDC's fall-risk tests, flags increased fall risk, tracks change from baseline, and coaches strength and balance moves while counting every rep.
 
-**Check.** About three minutes, with a family member standing by, as STEADI's instructions require. The base station and the belt beep a cue for each step. The screen shows a large instruction and a picture, and reads the instruction aloud. The belt scores each test.
+**Check.** The base station beeps each step. The screen shows one large instruction and a picture. The belt times Timed Up and Go from the "Go" beep until the person sits (a button is the stopwatch fallback), reports the slowdown when they name animals on a second walk (with the family's opt-in, Grok speech to text counts the animals named; the count never changes a score), counts a 30-second chair stand (arms used records 0), and times three balance holds beside a counter. A break has to last 0.3 seconds, so a flinch does not end the hold. Sway plays a warning beep; a real loss of balance ends the stance with an alarm. The dashboard also asks STEADI's three key questions.
 
-- Timed Up and Go: timed from the "Go" beep until the person is seated again, detected from the belt's motion. A button press works as a stopwatch fallback.
-- Timed Up and Go while naming animals out loud: we report the dual-task cost, the percentage slowdown from the normal walk. If the family opts in, Grok speech to text counts the distinct animals named (our measure, not a STEADI test). The count never changes the walk time or any flag.
-- 30-second chair stand: counts full stands. An Arms used button stops the test and records 0, as STEADI specifies.
-- Balance stances: feet together, then semi-tandem, then tandem, 10 seconds each, beside a counter. The belt times each hold until the stance breaks, and the sequence stops at the first failure. A short warning beep sounds when the person sways, and the stance keeps going. A break has to last 0.3 seconds, so a flinch or a bump to the belt doesn't end it. A button press can mark the break. A gap in the sensor data is scored as not measured.
-- Screening questions: the dashboard asks STEADI's three key questions: fallen in the past year, feel unsteady, worried about falling.
+Each result is compared with STEADI's cutoffs and the person's own baseline. Green, amber, or red is our summary, not STEADI's, and the lights show it. A check-in missing a core test is never green.
 
-Each result is compared with STEADI's cutoffs (Timed Up and Go of 12 seconds or more, chair stands below the age and sex norm, tandem stance under 10 seconds) and with the person's own rolling baseline. Steady flags increased fall risk and shows any sustained change from baseline. It gives a fall-risk level of green, amber, or red. That level is our own summary, not part of STEADI, and the belt's light and the base station's light show it. A check-in with a core test missing is never shown as green.
+**Coach.** Everyone gets a plan. If chair stands or balance slip across two check-ins, it adds sit-to-stands or balance holds. Reps step up as sessions are completed, and progression pauses when exercise days drop off.
 
-**Coach.** Exercise mode coaches sit-to-stands (the belt counts every rep and the base station beeps) and counter-supported balance holds (the belt times them). Everyone gets a plan, as STEADI recommends. If chair stands or balance slip across two check-ins, the plan adds sit-to-stands or balance holds. Reps and the stance move up as sessions are completed, and that progression pauses when exercise days drop off.
+**Share.** Home is plain words, trends, and exercise days against a target of 5 a week. Check-in is full screen, meant to be read from 3 m. For the doctor is a one-page summary after any check-in, with a nudge to bring it when something flags.
 
-**Share.** Three views:
-
-- Home tells the family in plain words how the check-in went, with trends and exercise days against a target of 5 a week.
-- Check-in is a full-screen view meant to be read from 3 m away.
-- For the doctor has a results table with the STEADI rule for each test, change from baseline, trends, the exercise log, and a one-page printable summary. The summary can be made after any check-in. When something flags, the family is prompted to bring it to the next doctor's visit.
-
-Every simulated value is labelled "Simulated". A built-in "Simulated: Dad" profile shows eight weeks of history: a flag, the exercise plan responding, and scores over time.
-
-The public demo at https://dhsquad.onrender.com runs on the simulator. Every value there is labelled "Simulated".
+Every simulated value is labelled "Simulated", including the eight-week "Simulated: Dad" history. The public demo at https://dhsquad.onrender.com runs on the simulator.
 
 ### How we built it
 
-**Hardware**
+**Hardware.** An ESP32 and an MPU-6050, on a USB power bank at the lower back, stream 100 Hz motion over UDP. The laptop sends colours and cues back. The belt's light and buzzer play them without stopping the sensor stream, including a sway warning and a loss-of-balance alarm. An Arduino base station (one button, an RGB LED, a buzzer) talks over USB serial. A phone running phyphox is the backup. Both sketches are built with arduino-cli. Wi-Fi, the UDP port, and the serial port are settings.
 
-- Belt: an ESP32 with an MPU-6050 IMU (±8 g, ±500 °/s). It reads the sensor's FIFO at 100 Hz and broadcasts UDP over Wi-Fi. A USB power bank powers it, and it is worn at the lower back. The laptop sends LED colours back to the belt, and the belt's RGB LED shows them without interrupting the sensor stream: blue while a session is running, then green, amber, or red for the level. The belt's buzzer plays the same cues as the base station without pausing the sensor stream, plus a warning beep when a balance stance sways and an alarm when it breaks.
-- Base station: an Arduino Uno R4 on a breadboard with a start button, an RGB LED, and a buzzer for cues and rep beeps. It talks to the laptop over USB serial with a small text protocol (`CUE start`, `LED amber`, `BTN`).
-- Backup sensor: a phone in a belt pouch running a custom phyphox experiment.
+**Scoring.** Orientation does not matter, so there is no calibration. Timing starts on "Go". A walk ends at stillness in a near-seated posture. Chair stands are upward-velocity peaks. A balance break is smoothed acceleration or trunk rotation that lasts 0.3 seconds. Thresholds are named constants, and `checkin replay` re-scores a saved session.
 
-Both firmware sketches are built with arduino-cli. Wi-Fi credentials, the UDP port, and the serial port are settings, not hard-coded. The ESP32 broadcasts UDP instead of targeting one IP.
+**Software.** FastAPI cues the devices, tags the stream, scores each step, and pushes live state over a WebSocket. The page is plain HTML and JavaScript, with Chart.js and the font stored locally, so the check-in works offline. The simulator, the belt, the phone, and a CSV replay share one interface, and so do the on-screen and Arduino base stations. Data is JSON, plus a CSV of every raw stream.
 
-**Scoring (Python, NumPy).** Scoring does not depend on how the belt is oriented, so there is no calibration step. Timing starts on the "Go" cue, as in the clinical protocol. The end of a Timed Up and Go is stillness after movement, in a posture closer to the seated posture before "Go" than to walking. Chair stands are counted from upward-velocity peaks. A stand still rising at 30 seconds counts if it is more than halfway up. A balance stance breaks when smoothed acceleration leaves the starting posture, or the trunk rotates past a set rate. The signal is averaged over a tenth of a second, and the reference is the posture at the start of the hold. Every threshold is a named constant, and `checkin replay` re-scores a recorded session after tuning.
+**Grok in the product.** Grok Imagine drew the instruction pictures, which ship as local files. Grok chat writes a 3- to 5-sentence family update from the recorded numbers. No name is sent. A reply is rejected if it invents a number, makes a forbidden claim, or uses clinical jargon, and the page labels accepted text "AI-written". Otherwise the family gets fixed wording. Ask Steadi answers a short question from those same numbers, through the same checks. Grok Voice speaks the check-in cues in a soft, soothing voice, generated ahead of time so they play offline, and a Listen button reads the summary. With the family's opt-in, Grok speech to text counts the animals named on the dual-task walk; only the names and counts are kept. A switch, or `CHECKIN_AI=off`, turns every Grok call off. The check-in still works.
 
-**Swappable hardware.** Every sensor (simulator, ESP32 over UDP, phyphox, CSV replay) and both base stations (on-screen or Arduino serial) sit behind the same interfaces. We built and tested the software on the simulator, and the public demo runs there.
+**Cursor.** We ran many agents in parallel and sent each task to the model better at it: Grok for rapid idea checks, Claude and Grok for the backend, Codex and Grok for the UI and visual design. Cursor can guide an agent while it is still running. We often confirmed a new idea while agents were already spinning, which is how the sway warning and the foot pictures made it in.
 
-**Server and dashboard.** A FastAPI session controller cues the devices, tags the motion stream by step, scores each step, and pushes live state to the page over a WebSocket. The page is plain HTML and JavaScript with a local copy of Chart.js and a local font. It makes no CDN calls, and the check-in works on an offline access point. Only the optional Grok features call out, and only when an API key is set. One Grok switch on the dashboard (or `CHECKIN_AI=off`) turns them all off. Data is stored as JSON files, and every session also saves its raw motion stream as a CSV file.
-
-**xAI Grok in the product**
-
-- Grok Imagine (`grok-imagine-image-2.0`) drew the instruction picture for each step: Timed Up and Go, chair stand, sit-to-stand, supported hold, and the three foot positions, shown from above because a side view hides foot placement. `scripts/make_images.py` holds the style prompts. The pictures ship as local files.
-- Grok chat (`grok-4.3`, configurable) turns the doctor summary into a 3- to 5-sentence family update. No name is sent. The reply is rejected if it uses a forbidden claim (diagnose, predict, guarantee, medication advice) or clinical jargon, or if it includes any number that is not in the source data. The page tags accepted text as "AI-written". With no key, no internet, or a rejected reply, the family gets a fixed-wording summary.
-- Grok Voice (xAI text to speech) reads each check-in and exercise instruction aloud in a soft, soothing voice. The cues are generated once by `scripts/make_voice.py` and ship as local files, so they play offline; the browser's own voice covers any cue without a file. **Listen** reads the family summary aloud. Speech never starts or stops a timer.
-- Grok speech to text counts the animals named on the dual-task walk, when the family opts in. The page records that one walk, sends it once, and keeps only the animal names and counts. With Grok off or no microphone, the walk is scored as usual.
-- Ask Steady lets the family ask a question about the latest results. Grok answers in 1 to 3 sentences from the doctor summary only (no name), through the same checks as the summary. Questions that ask for a prediction, a diagnosis, or medical advice are answered with fixed wording and never sent.
-
-**How we built it with Cursor.** We ran Cursor as a team of parallel agents and sent each task to the model best at it.
-
-- Grok for quick idea checks: whether a feature idea, a threshold, or a claim held up before we committed to it.
-- Claude and Grok on the backend: signal scoring, the STEADI logic, the session controller, and the API.
-- Codex and Grok on the frontend: the UI and visual design of the three dashboard views.
-
-Many agents worked at once on firmware, scoring, the dashboard, and documentation, and the swappable interfaces kept them from getting in each other's way. The most useful feature was Cursor's mid-run guidance. When we had a new idea, we could steer an agent while it was still running instead of stopping it and starting over. That is how late ideas, such as the foot-position pictures, made it into the build.
-
-**Testing.** pytest, including a full simulated check-in scored against the simulator's true values. Linting uses ruff. `checkin validate` re-scores recorded sessions and compares them with a stopwatch and hand counts, with charts labelled "not a clinical validation". Agreement on real people is still to be measured.
+**Testing.** pytest, including a full simulated check-in scored against the simulator's true values, and ruff. Agreement with a stopwatch and hand counts on real people is still to be measured.
 
 ### Challenges we ran into
 
-**No soldering at the venue.** The hardware desk had no soldering irons, clips, or wire strippers. We soldered the MPU-6050 headers at a campus makerspace and built against a simulator, so progress never waited on the belt.
-
-**Detecting the end of a Timed Up and Go.** The STEADI protocol times from "Go" to seated, so we had to find the sit-down and tell it apart from a pause while standing. We compare the posture with the seated posture before "Go", and a button press remains a stopwatch fallback.
-
-**Balance scoring.** A flinch or a bump to the belt should not end a hold, and a missing tail of sensor data should not look like a short hold. We smooth the signal over a quarter second, compare it with the posture in the first half second of the stance, require a break to last 0.3 seconds, and score a dropout as not measured. A button press can still mark a break.
-
-**Messy input.** Late packets at the end of a step, short gaps in the Wi-Fi stream, a double-tap on the button, and a stray press right after "Go" each had to be ignored or scored as not measured. The belt keeps streaming at 100 Hz while it reads LED and cue messages and plays its beeps.
-
-**Keeping an LLM honest in a health product.** A fluent family summary is easy to generate. One that never invents a number or says it predicts falls is harder, so we check the output rather than trusting the prompt.
-
-**Designing for two audiences.** Older adults need big text and one action at a time. Doctors need exact numbers and the rule for each test. We ended up with separate views for the family, the check-in, and the doctor.
+The venue had no soldering tools, so we soldered headers at a makerspace and built on a simulator until the belt was ready. Telling "sat down" from "paused while standing" took a posture check against the seat before "Go", with the button kept as a stopwatch. Balance used to end on any flinch. A break now lasts 0.3 seconds, sway warns first, and a missing sensor tail scores as not measured. Late packets, Wi-Fi gaps, and double-taps had to be ignored, and the belt had to beep without dropping its 100 Hz stream. A fluent family summary is easy to generate. One that never invents a number, or says it predicts a fall, has to be checked. Families need one big action. Doctors need the rule for each number. Those are separate views.
 
 ### Accomplishments that we're proud of
 
-- The CDC's STEADI loop runs end to end: screening questions, all three tests plus a dual-task walk, coached exercise, and tracking. The same software runs on the belt, a phone, a replayed recording, or the simulator.
-- Every rep is counted and every hold is timed, so the family can see whether the exercise happened.
-- A helper stands by for the check-in, as STEADI's instructions require. Solo exercise is limited to supported moves: sit-to-stands from a sturdy chair and counter-supported balance holds.
-- A guarded AI summary that falls back to fixed wording on any doubt, and that the page labels as AI-written.
-- A dashboard that works offline for the check-in, with body text of at least 18 px, AA contrast, 44 px touch targets, and screen-reader labels on the charts.
-- Honesty is in the product: simulated data is labelled, a stance the sequence never reached shows as "not tried", and a check-in missing a test is never shown as all-clear.
+- The STEADI loop runs end to end, on the belt, a phone, a recording, or the simulator: the questions, three tests plus a dual-task walk, coached exercise, and tracking.
+- Every rep is counted and every hold is timed. A helper stands by for the check-in. Solo exercise is limited to supported moves.
+- The family summary is checked before it is shown, labelled AI-written, and replaced with fixed wording on any doubt.
+- The check-in works offline, with body text of at least 18 px, AA contrast, and 44 px targets. Simulated data is labelled. A missing test is never shown as all-clear.
 
 ### What we learned
 
-Clinical protocols make good specs. Following STEADI on timing (from "Go", record 0 when arms are used, stop at the first failed stance) removed sensing problems such as detecting when movement starts.
-
-Parallel agents need clean interfaces. With swappable devices and a written API, several agents could work at once.
-
-Sending tasks to models by their strengths, and steering agents while they ran, got more done than one long chat.
-
-With an LLM in a health product, the checks on the output matter more than the prompt.
-
-Balance is the hardest thing to score. That matches published lower-back IMU work, which agreed with human raters within about 4% on the Timed Up and Go and about 8% on chair stands, and less well on balance.
+Following the clinical timing, from "Go", and recording 0 when arms are used, removed sensing problems such as detecting when a walk starts. Swappable devices let several agents work at once. Sending each task to the model better at it, and guiding agents while they were still running, beat one long chat. In a health product, the checks on the model's output matter more than the prompt. Balance is the hardest score, which matches published lower-back IMU work: within about 4% on Timed Up and Go, about 8% on chair stands, and less well on balance.
 
 ### What's next
 
-- Run `checkin validate` on real people, publish the agreement with a stopwatch and with hand counts, and tune thresholds with the replay tool.
-- Check the animal count against a hand tally on real walks, with a close microphone.
-- Measure gait quality on an optional 30-second walk using Pfizer's open-source SKDH library. No core score depends on it.
-- Run a pilot with physical therapists or a senior center, and work out a per-unit cost.
+Validate on real people and publish the stopwatch and hand-count agreement. `checkin validate` is already built. Commit the generated Grok Voice files so the cues play offline. Then check the animal count against a hand tally, optional gait quality, and a pilot with a per-unit cost.
 
 ### Built with
 
@@ -144,11 +89,11 @@ python, fastapi, uvicorn, websockets, numpy, pyserial, javascript, html5, css, c
 
 ### Track fit
 
-**The Shipyard (Hardware).** Steady is a wearable with a job. An IMU belt streams 100 Hz motion over Wi-Fi, its light shows the check-in state, and its buzzer beeps the cues and warns when a balance stance sways. A one-button base station cues each step, so the check-in is not an app on the older adult's phone. The belt sits at a standard placement at the lower back, and there is one button to press. Both firmware sketches, the belt-to-laptop UDP protocol, and the serial protocol are ours. Judges can clip on the belt and do a 30-second chair stand while the dashboard scores it live.
+**The Shipyard (Hardware).** Steadi is a wearable with a job. An IMU belt streams 100 Hz motion over Wi-Fi, and its light shows the check-in state. A one-button base station cues each step, so the check-in is not an app on the older adult's phone. The belt sits at a standard placement at the lower back, and there is one button to press. Both firmware sketches, the belt-to-laptop UDP protocol, and the serial protocol are ours. Judges can clip on the belt and do a 30-second chair stand while the dashboard scores it live.
 
-**Aramco, A Marina's Mission (social good: health).** Falls are the leading cause of injury death for adults 65 and older. Steady brings the CDC's own STEADI fall-risk screening from a yearly clinic visit to a weekly routine at home, and pairs it with strength and balance exercise of the type shown to reduce the rate of falls. The belt confirms the exercise was done. It is built for the people it serves: plain language for families, a one-page summary for the doctor, large text and AA contrast, and a check-in that works offline. It flags increased fall risk and tracks change from baseline. It does not diagnose, and we have not run a clinical trial.
+**Aramco, A Marina's Mission (social good: health).** Falls are the leading cause of injury death for adults 65 and older. Steadi brings the CDC's own STEADI fall-risk screening from a yearly clinic visit to a weekly routine at home, and pairs it with strength and balance exercise of the type shown to reduce the rate of falls. The belt confirms the exercise was done. It is built for the people it serves: plain language for families, a one-page summary for the doctor, large text and AA contrast, and a check-in that works offline. It flags increased fall risk and tracks change from baseline. It does not diagnose, and we have not run a clinical trial.
 
-**SpaceXAI, Make it Legendary (Cursor + Grok).** We built Steady in Cursor as a team of parallel agents. Grok handled quick idea checks, Claude and Grok built the backend, and Codex and Grok built the frontend. Cursor's mid-run guidance let us steer agents with new ideas while they were running. Grok is also in the product. Grok Imagine drew every instruction picture, Grok Voice reads the check-in aloud, Grok speech to text counts the animals named on the dual-task walk, and a Grok model writes the family's update and answers their questions from the recorded numbers inside a strict check: no invented numbers, no diagnosis or prediction claims, no jargon, and fixed wording as the fallback. One switch turns every Grok call off.
+**SpaceXAI, Make it Legendary (Cursor + Grok).** We used Cursor to run many agents in parallel, and we sent each kind of task to the model that was better at it. Grok did rapid idea verification. Claude and Grok built the backend. Codex and Grok did a lot of the frontend and the UI and visual design. Cursor can guide an agent while it is still running, so when we had a new idea we wanted confirmed we steered the agents that were already spinning instead of starting over. Grok is also in the product, aimed at public health. Grok Imagine drew every instruction picture. A Grok model writes the family's update, and answers Ask Steadi, from the recorded numbers inside a strict check: no invented numbers, no diagnosis or prediction claims, no jargon, and fixed wording as the fallback. Grok Voice speaks the check-in cues and reads the family summary aloud, and Grok speech to text counts the animals named on the dual-task walk. A switch turns every Grok call off, and the check-in still works.
 
 ### Video demo script (about 2 minutes)
 
@@ -158,12 +103,12 @@ Three teammates narrate, and Allen does the physical demo.
 |---|---|---|
 | 0:00–0:15 | "Every second, an older adult falls." Then about 41,000 deaths a year, and about $80 billion in medical costs for non-fatal falls (2020). | Speaker 1: "Falls are the leading cause of injury death after 65." |
 | 0:15–0:30 | The alarm finding (80% did not use it) and "21% fully adhered to a prescribed home program." | Speaker 1: "Today's devices notice a fall after it happens. Exercise cuts the rate of falls by 23%, and almost nobody completes the home program." |
-| 0:30–0:40 | The belt, the base station, and the tablet. Title card: Check. Coach. Share. | Speaker 2: "Steady turns the CDC's fall-risk tests into a 3-minute routine at home." |
-| 0:40–1:10 | Allen, with a teammate standing by, does the check-in: Timed Up and Go on the "Go" beep, a clip of the walk while naming animals, chair stands counting up, and a balance hold with the foot picture. | Speaker 2: "Check: the belt scores the CDC's own tests. It times the walk, counts stands, and times each balance hold." |
+| 0:30–0:40 | The belt, the base station, and the tablet. Title card: Check. Coach. Share. | Speaker 2: "Steadi turns the CDC's fall-risk tests into a 3-minute routine at home." |
+| 0:40–1:10 | Allen, with a teammate standing by, does the check-in: Timed Up and Go on the "Go" beep, a clip of the walk while naming animals, chair stands counting up, and a balance hold with the foot picture and a sway warning beep. | Speaker 2: "Check: the belt scores the CDC's own tests. It times the walk, counts stands, and times each balance hold, with a warning beep if he sways." |
 | 1:10–1:20 | The result screen, then the light turning green, amber, or red. | Speaker 2: "Results in plain words, and the light shows the level." |
 | 1:20–1:35 | Exercise mode: a short set of sit-to-stands with a beep and a count per rep, then the week's exercise days. | Speaker 3: "Coach: strength and balance moves, and every rep counted." |
-| 1:35–1:50 | "Simulated: Dad", with the Simulated label visible: a flag, the trend, the For the doctor view and printout, and the family summary with its AI-written tag. | Speaker 3: "Share: the family sees the trend, and the doctor gets a one-page summary. Grok writes the family update inside strict checks." |
-| 1:50–2:00 | A short capture of Cursor with parallel agents, then the closing card with the website URL. | Speaker 3: "Built in Cursor with Grok, Claude, and Codex. Steady: Check. Coach. Share." |
+| 1:35–1:50 | "Simulated: Dad", with the Simulated label visible: a flag, the trend, the For the doctor view and printout, the family summary with its AI-written tag, and the Listen button. | Speaker 3: "Share: the family sees the trend, and the doctor gets a one-page summary. Grok writes the family update inside strict checks." |
+| 1:50–2:00 | A short capture of Cursor with parallel agents, then the closing card with the website URL. | Speaker 3: "Built in Cursor. Grok checked the ideas, Claude and Grok built the backend, Codex and Grok built the screen. Steadi: Check. Coach. Share." |
 
 Film the check-in on the real belt. Label any simulator footage "Simulated". After an amber or red result, say "flags increased fall risk".
 
@@ -187,10 +132,10 @@ It does three jobs the gallery needs. The first sentence says what the project i
 |---|---|---|
 | The CDC's fall-risk tests, scored by a belt at home. Check. Coach. Share. | 73 | The Devpost tagline. Recommended. |
 | Check. Coach. Share. | 20 | The video closer and the last slide. Too thin alone on a gallery of hardware projects. |
-| Steady turns the CDC's fall-prevention playbook into a 3-minute routine. | 72 | A spoken opener, if you want the deck's sentence. "Playbook" means STEADI, the CDC program. Say it in the video, not as the only line on the card. |
+| Steadi turns the CDC's fall-prevention playbook into a 3-minute routine. | 72 | A spoken opener, if you want the deck's sentence. "Playbook" means STEADI, the CDC program. Say it in the video, not as the only line on the card. |
 | A 3-minute home check-in that flags increased fall risk and counts every rep. | 77 | The most literal description. Use it if the form has a second short-description field. |
 | The CDC's fall-risk tests, scored by a belt at home. Every rep counted. | 71 | Same shape as the recommended line, with the exercise proof instead of the three-beat closer. |
-| Today's answers come too late. Steady starts before a fall. | 59 | Leave this off the card. "Before a fall" is easy to hear as "predicts" or "prevents". The inspiration section already says today's devices notice a fall after it happens. |
+| Today's answers come too late. Steadi starts before a fall. | 59 | Leave this off the card. "Before a fall" is easy to hear as "predicts" or "prevents". The inspiration section already says today's devices notice a fall after it happens. |
 
 ## Elevator pitch
 
@@ -200,7 +145,7 @@ If a judge is already holding the belt, start one sentence later: "A belt at the
 
 ## Deck lines, resolved from the code
 
-- The belt in this tree has a motion sensor, an RGB LED, and a buzzer. The laptop sends the LED colour and the cues over UDP. The belt beeps the cues, a sway warning, and a losing-balance alarm (with `--source udp`; otherwise cues play on the base station or in the browser). The button is on the Arduino, or on the screen, not on the belt. The demo slide should say: a motion sensor, a light, and a buzzer on the belt; a button, a light, and a buzzer on the base station.
+- The belt has a motion sensor, an RGB LED, and a buzzer. The laptop sends LED colours and cues over UDP, and the belt plays them without stopping the sensor stream, including a sway warning and a loss-of-balance alarm. The button is on the Arduino base station, or on the screen. The base station also has a light and a buzzer. The demo slide should say: a motion sensor, a light, and a buzzer on the belt; a button, a light, and a buzzer on the base station.
 - Everyone gets an exercise plan, including before any check-in (the standard sets and holds). The plan adds a sit-to-stand set when chair stands are low two check-ins in a row or have slipped below baseline, and adds balance holds when the tandem stance flags two check-ins in a row or has slipped below baseline. Reps start at 8 and move up to 10, and the stance moves up, only after completed work and at least 3 exercise days in the last 7. Otherwise progression stays put. There is no slower-pace mode.
 - The one-page doctor summary can be made after any check-in. A flag prompts the family to take it to the next visit.
 
@@ -248,8 +193,9 @@ Leave out stat slides, a Cursor window, a wiring diagram, the phone-in-a-pouch b
 ## Left open
 
 - Team names. The deck you described lists Kevin Yin and James Wang, and Allen runs the physical demo. Confirm the Devpost team before submitting. Nothing here invents a third name.
-- Stopwatch and hand-count agreement. The tool is in the repo (`checkin validate`, `docs/VALIDATION.md`), but no real trials have been recorded. The testing paragraph says it is still to be measured.
-- Spoken cues ship as the browser's voice until someone runs `scripts/make_voice.py` with the xAI key and commits the audio.
+- Stopwatch and hand-count agreement. The tool is in the repo (`checkin validate`, `docs/VALIDATION.md`); no real trials are recorded yet. The testing paragraph says it is still to be measured.
+- Spoken cue mp3s. The Grok Voice code, the Listen button, and `scripts/make_voice.py` are on main. `src/checkin/static/audio/` has the index and no mp3s yet, so a check-in with no generated files uses the browser's voice. What's next says to generate and commit those files (they will be in the carina voice).
 - The animal count has only been tested with mocked speech to text and the bundled sample. Try it once with the key and a close mic before filming.
+- A balance break lasts 0.3 seconds (`BREAK_MIN_S` in `src/checkin/signals.py`). Sustained sway plays `CUE warn` before a loss of balance plays `CUE alarm`.
 - Per-unit cost. `docs/COMPETITION.md` still says to fill this in before judging.
 - Image files for the gallery. The shot list is above. Photos of the belt, the base station, and a person wearing the belt still have to be taken. There is no CAD file in the repo to render.

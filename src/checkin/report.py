@@ -108,6 +108,12 @@ def _stat(x, y, big, small, focal=False, size=30):
     return text(x, y, big, size, 700, fill) + text(x, y + 22, small, 14, 400, MUTED)
 
 
+def _missed(s):
+    """Trials the belt couldn't score stay on every headline, never silently dropped."""
+    k = s.get("not_scored") or 0
+    return f" · {k} not scored" if k else ""
+
+
 def _people(stats):
     n = sum(s["n"] + s["not_scored"] for s in stats)
     people = max((s["people"] for s in stats), default=0)
@@ -171,8 +177,8 @@ def scatter(slug, series, stats, tol, unit, what, simulated, truth_word="stopwat
             b.append(text(lx, ly, f"×{k}", 12, 700, MUTED, "start", f'data-count="{k}"'))
     s = stats
     px = 472
-    b.append(_stat(px, 172, f"{s['within']} of {s['n']}", f"trials within ±{tol:g} {unit} of the {truth_word}",
-                   True, 40))
+    b.append(_stat(px, 172, f"{s['within']} of {s['n']}",
+                   f"trials within ±{tol:g} {unit} of the {truth_word}{_missed(s)}", True, 40))
     b.append(_stat(px, 250, num(s["bias"], 2, True, unit), f"mean difference, belt minus {truth_word}"))
     typical = num(s["mae"], 2, unit=unit) + (f" ({s['mae_pct']:g}%)" if s.get("mae_pct") is not None else "")
     b.append(_stat(px, 318, typical, "typical error (mean absolute difference)"))
@@ -231,7 +237,7 @@ def bland_altman(slug, pairs, s, tol, unit, what, simulated, truth_word="stopwat
     b.append(_stat(px, 172, num(s["bias"], 2, True, unit), "mean difference (bias)", True, 40))
     b.append(_stat(px, 250, f"{num(s['loa'][0], 2, True)} to {num(s['loa'][1], 2, True)} {unit}",
                    "95% limits of agreement", size=26))
-    b.append(_stat(px, 318, f"{s['within']} of {s['n']}", f"within ±{tol:g} {unit}", size=26))
+    b.append(_stat(px, 318, f"{s['within']} of {s['n']}", f"within ±{tol:g} {unit}{_missed(s)}", size=26))
     b.append(text(px, 386, "About 95% of trials should fall", 14, 400, MUTED))
     b.append(text(px, 406, "between the dashed lines. A bias", 14, 400, MUTED))
     b.append(text(px, 426, "away from zero is a steady offset.", 14, 400, MUTED))
@@ -259,8 +265,8 @@ def counts(slug, groups, simulated):
             hist[max(-3, min(3, round(p["diff"])))] += 1
         top = max(hist.values()) or 1
         b.append(text(px, 152, s["label"], 18, 700))
-        b.append(text(px, 176, f"{s['exact']} of {s['n']} counted exactly · {s['within']} of {s['n']} within ±1",
-                      14, 400, MUTED))
+        b.append(text(px, 176, f"{s['exact']} of {s['n']} counted exactly · {s['within']} of {s['n']} within ±1"
+                      + _missed(s), 14, 400, MUTED))
         bw, y1, hmax = pw / len(bins), 424, 196
         for j, k in enumerate(bins):
             h = hist[k] / top * hmax
@@ -314,7 +320,7 @@ def summary(slug, stats, simulated):
         b.append(f'<rect x="{bx}" y="{y + 8}" width="{bw * share:.1f}" height="20" fill="{ACCENT if focal else INK}" '
                  f'fill-opacity="{1 if focal else 0.78}" data-value="{k}" data-of="{s["n"]}"/>')
         b.append(text(bx + bw + 20, y + 24, f"{k} of {s['n']}", 20, 700, ACCENT if focal else INK))
-        b.append(text(bx + bw + 20, y + 44, what, 13, 400, MUTED))
+        b.append(text(bx + bw + 20, y + 44, what + _missed(s), 13, 400, MUTED))
         y += step
     legend = [("bar-accent", "share of trials in agreement (the headline test)"), ("bar", "other tests")]
     return frame(slug, "Belt agreement summary",
@@ -341,6 +347,7 @@ def charts(pairs, stats, simulated):
         from .validate import agreement
 
         pooled = agreement(allp, s["tol"], "time")
+        pooled["not_scored"] = sum(stats[m]["not_scored"] for m in ("tug", "dual_tug") if m in stats)
         if by.get("tug") and "cutoff" in s:
             pooled["cutoff"] = s["cutoff"]
         out["tug-scatter"] = scatter("tug-scatter", walk, pooled, s["tol"], "s", "Timed Up and Go", simulated)

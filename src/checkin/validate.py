@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 
 from . import sim, steadi
+from .controller import BALANCE_S
 from .store import read_recording, write_recording
 
 FIELDS = ["recording", "step", "truth", "person", "who", "notes"]
@@ -45,7 +46,7 @@ def cutoff_of(step):
 
 
 def read_truth(path):
-    with Path(path).open(newline="") as f:
+    with Path(path).open(newline="", encoding="utf-8-sig") as f:  # Excel's "CSV UTF-8" starts with a BOM
         rows = list(csv.DictReader(f))
     if rows and {"recording", "step", "truth"} - set(rows[0]):
         raise SystemExit(f"{path}: needs columns {','.join(FIELDS)}")
@@ -70,7 +71,7 @@ def write_template(recordings, out):
                 new.append({"recording": path.name, "step": sid, "truth": "", "person": "", "who": "",
                             "notes": "simulated" if rec.simulated else ""})
     out.parent.mkdir(parents=True, exist_ok=True)
-    fresh = not out.exists()
+    fresh = not out.exists() or out.stat().st_size == 0
     with out.open("a", newline="") as f:
         w = csv.DictWriter(f, FIELDS)
         if fresh:
@@ -94,11 +95,16 @@ def pair(truth_path, recordings=None):
     from .cli import replay
 
     scored, out = {}, []
-    for row in read_truth(truth_path):
+    for i, row in enumerate(read_truth(truth_path), start=2):
+        row["step"] = row["step"].strip()
         text = (row.get("truth") or "").strip()
         measure = measure_of(row["step"])
         if not text or measure is None:
             continue
+        try:
+            truth = float(text)
+        except ValueError:
+            raise SystemExit(f"{truth_path} row {i}: truth {text!r} isn't a number") from None
         name = row["recording"].strip()
         if name not in scored:
             path = _find(name, truth_path, recordings)
@@ -112,10 +118,12 @@ def pair(truth_path, recordings=None):
             why = result["error"]
         elif result.get("method") == "window end":  # the helper's button ended it: that's a stopwatch, not the belt
             why = "belt didn't detect the sit-down"
+        elif (row["step"].startswith("balance_") and result.get("broke") is False
+              and result["hold_s"] < BALANCE_S - 0.05):
+            why = "ended by the button"  # the helper stopped the stance: human timing, not the belt
         else:
             why = None
         belt = None if why else float(result[key])
-        truth = float(text)
         out.append({
             "recording": name, "step": row["step"], "measure": measure, "person": (row.get("person") or "").strip(),
             "who": (row.get("who") or "").strip(), "notes": (row.get("notes") or "").strip(),

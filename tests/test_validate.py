@@ -101,3 +101,23 @@ def test_simulated_run_is_labelled_everywhere(tmp_path, monkeypatch, capsys):
 def test_missing_truth_file_points_at_the_template(tmp_path):
     with pytest.raises(SystemExit, match="--template"):
         main(["validate", str(tmp_path / "none.csv")])
+
+
+def test_truth_file_from_excel_and_messy_rows(tmp_path):
+    truth = tmp_path / "truth.csv"
+    truth.write_text("recording,step,truth\nx.csv, tug,12 s\n", encoding="utf-8-sig")
+    assert validate.read_truth(truth)[0]["recording"] == "x.csv"  # the BOM doesn't hide the first column
+    with pytest.raises(SystemExit, match="row 2: truth '12 s' isn't a number"):
+        validate.pair(truth, tmp_path)
+
+
+def test_a_stance_ended_by_the_button_is_not_scored(tmp_path, monkeypatch):
+    (tmp_path / "x.csv").write_text("")
+    truth = tmp_path / "truth.csv"
+    truth.write_text("recording,step,truth\nx.csv,balance_tandem,6.1\nx.csv,balance_feet_together,10\n")
+    steps = {"balance_tandem": {"hold_s": 6.0, "broke": False},  # the helper pressed at 6 s
+             "balance_feet_together": {"hold_s": 10.0, "broke": False}}
+    monkeypatch.setattr("checkin.cli.replay", lambda path: {"simulated": False, "steps": steps})
+    tandem, feet = validate.pair(truth, tmp_path)
+    assert tandem["not_scored"] == "ended by the button" and tandem["belt"] is None
+    assert feet["not_scored"] is None and feet["belt"] == 10.0

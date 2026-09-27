@@ -7,7 +7,7 @@ don't call the result "accuracy". Say "agreed with a stopwatch within 1 second i
 
 ## What you need
 
-- The belt, base station and laptop, set up as for a normal check-in (README, sections 2 and 3).
+- The belt, base station and laptop, set up as for a normal check-in (`HARDWARE.md`, sections 2 and 3).
 - A **timer**: a second person with a phone stopwatch (lap mode off). They watch the walker, not the screen.
 - A **counter** for chair stands and exercise reps. The timer can do both, one job per trial.
 - The STEADI test station: arm chair, armless ~17-inch chair, 3 m tape line, a counter for balance.
@@ -30,7 +30,7 @@ Aim for at least **12 trials of each test**, from **3 or more people**. More peo
 |---|---|---|---|---|
 | Timed Up and Go (`tug`) | seconds | stopwatch | Start on "Go". Stop when their back is against the chair again. | 12+ |
 | Dual-task TUG (`dual_tug`) | seconds | stopwatch | Same as TUG. | 12+ |
-| 30-second chair stand (`chair_stand`) | stands | hand count | Count full stands from "Go" to the stop beep. A stand more than halfway up at the beep counts. | 12+ |
+| 30-second chair stand (`chair_stand`) | stands | hand count | Count full stands from "Go" to the stop beep. A stand more than halfway up at the beep counts. If they used their arms, write the stands before that and note `arms`. | 12+ |
 | Balance stances (`balance_*`) | seconds held | stopwatch | Start on "Go". Stop when a foot moves or a hand touches the counter. Held to the end beep = `10`. | 3 per check-in |
 | Sit-to-stand sets (`sit_to_stand#N`) | reps | hand count | Count full stands you see, not the beeps. | 12+ sets |
 | Supported holds (`hold_*#N`) | seconds held | stopwatch | Same as balance. | optional |

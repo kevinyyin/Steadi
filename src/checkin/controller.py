@@ -76,6 +76,7 @@ class Controller:
         self.chunks = []
         self.tags = []
         self.busy = False
+        self.session_id = None
         self._pending = None
         self._pressed = False
         self._last_press = float("-inf")
@@ -113,6 +114,36 @@ class Controller:
             return
         if self.busy:
             self._stop = reason
+
+    def finished_step(self, sid):
+        """(session id, result) of check-in step `sid` once it has ended, in the running session or the one
+        just saved; None otherwise. Extras added to the result later go through add_to_step."""
+        if self.busy:
+            if self.state["mode"] != "checkin":
+                return None
+            s = next((s for s in self.state["steps"] if s["id"] == sid and s["status"] in ("done", "failed")), None)
+            return (self.session_id, s["result"]) if s and s["result"] is not None else None
+        rec = self.state["last_record"]
+        if rec and self.state["mode"] == "checkin" and sid in (rec.get("steps") or {}):
+            return rec["id"], rec["steps"][sid]
+        return None
+
+    def add_to_step(self, session_id, sid, result, fields):
+        """Merge `fields` into a step result from finished_step. A running session saves them with the
+        check-in; a saved one is updated in the store. Returns False if that session was cancelled."""
+        result.update(fields)
+        if not (self.busy and self.session_id == session_id):
+            rec = self.state["last_record"]
+            if not (rec and rec.get("id") == session_id):
+                return False
+            person = self.store.get(self.state["person_id"])
+            for c in person["checkins"]:
+                if c["id"] == session_id:
+                    c["steps"][sid].update(fields)
+            self.store.save(person)
+            self.on_event({"type": "saved", "person_id": person["id"], "mode": "checkin", "id": session_id})
+        self._emit()
+        return True
 
     # ---- loop ----------------------------------------------------------------------------------
     async def run(self):
@@ -218,7 +249,7 @@ class Controller:
     async def run_session(self, person_id, mode, plan=None):
         person = self.store.get(person_id)
         started = datetime.now()
-        session_id = started.strftime("%Y%m%d-%H%M%S") + f"-{mode}"
+        session_id = self.session_id = started.strftime("%Y%m%d-%H%M%S") + f"-{mode}"
         self.busy, self._stop, self.tags = True, None, []
         self._trim(self.clock.now() - PRE_S - 1.0)
         if mode == "exercise":

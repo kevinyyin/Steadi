@@ -80,6 +80,18 @@ def _change(changes, key):
 CORE_NAMES = {"tug_s": "Timed Up and Go", "chair_stands": "chair stand", "tandem_s": "balance"}
 
 
+def animals_line(step):
+    """"9 (1 repeat); per 10 s: 5, 4", or "not counted" (no key, no microphone, offline, or older records)."""
+    a = (step or {}).get("animals") or {}
+    if a.get("status") != "counted":
+        return "not counted."
+    r = a["repeats"]
+    text = f"{a['named']} ({r} repeat{'' if r == 1 else 's'})"
+    if a.get("per_10s"):
+        text += "; new animals per 10 s: " + ", ".join(map(str, a["per_10s"]))
+    return text + (", from a sample recording (SIMULATED)." if a.get("simulated") else ", counted by speech to text.")
+
+
 def doctor(dash):
     """Plain-text STEADI summary from the recorded numbers only. No name, so it can be shared as is."""
     person, latest = dash["person"], dash["latest"]
@@ -126,6 +138,8 @@ def doctor(dash):
         f"- Timed Up and Go: {tug} (flags at {_num(cut['tug_s'], ' s')} or more{_change(ch, 'tug_s')})",
         f"- Timed Up and Go while naming animals: {_num(m['dual_tug_s'], ' s')}; dual-task cost "
         f"{_num(m['dual_task_cost_pct'], '%')}{_change(ch, 'dual_task_cost_pct')}",
+        *([f"- Animals named on that walk (our measure, not a STEADI test): {animals_line(steps['dual_tug'])}"]
+          if (steps.get("dual_tug") or {}).get("animals") else []),  # only when the family opted in
         f"- 30-second chair stand: {chair} ({chair_rule}{_change(ch, 'chair_stands')})",
         f"- Balance stances held (target 10 s): feet together {stance('feet_together')}, "
         f"semi-tandem {stance('semi_tandem')}, tandem {stance('tandem')} "

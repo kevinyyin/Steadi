@@ -1,10 +1,10 @@
-# Steady
+# Steadi
 
-**Steady: a belt, one button, and a family dashboard that bring the CDC's STEADI fall-risk screening into the home, then coach the exercises and count every rep.**
+**Steadi: a belt, one button, and a family dashboard that bring the CDC's STEADI fall-risk screening into the home, then coach the exercises and count every rep.**
 
 This is fall-risk screening: it flags increased fall risk and tracks change from baseline. It does not diagnose anything, predict when someone will fall, or guarantee prevention. We have not run a trial.
 
-> **For judges, start here.** Run it with no hardware in two commands ([Quick start](#quick-start-no-hardware)); a full simulated check-in takes about a minute and a half. The hardware is an ESP32 + MPU-6050 belt and an Arduino base station ([How it works](#how-it-works)). The Grok features are described in [Grok / xAI](#grok--xai).
+> **For judges, start here.** Run it with no hardware in two commands ([Quick start](#quick-start-no-hardware)); a full simulated check-in takes about a minute and a half. The hardware is an ESP32 + MPU-6050 belt and an Arduino base station ([How it works](#how-it-works)). The Grok features are described in [Grok / xAI](#grok--xai). How we used Cursor, and which model did which part of the build, is in [Built in Cursor](#built-in-cursor).
 
 ## The problem
 
@@ -34,7 +34,7 @@ Safety by design: balance is done beside a counter, with no single-leg or eyes-c
 
 | Part | What it is | Role |
 |---|---|---|
-| Belt | ESP32 + MPU-6050 (6-axis IMU) on an elastic belt at the lower back, USB power bank | Streams accelerometer + gyroscope at 100 Hz over Wi-Fi as UDP broadcast; has its own RGB status LED |
+| Belt | ESP32 + MPU-6050 (6-axis IMU) on an elastic belt at the lower back, USB power bank | Streams accelerometer + gyroscope at 100 Hz over Wi-Fi as UDP broadcast. Its RGB LED shows the check-in state, and its buzzer plays the cues (including a sway warning and a loss-of-balance alarm) without stopping the sensor stream |
 | Base station | Arduino (Uno R4 or Nano) with a push button, RGB LED, and passive buzzer | The only thing the older adult touches: button to start each step, beeps for "Go" / stop / each rep, LED for the result |
 | Laptop | Runs `checkin serve` | Session controller, scoring, storage, web server |
 | Tablet | Any browser on the same network | Family dashboard |
@@ -79,7 +79,7 @@ flowchart LR
 - **The laptop is the session controller.** For each step it sends the "Go" cue to the base station, tags the incoming motion stream with the step, scores the step when it ends, and pushes live state to the dashboard over a WebSocket.
 - **Timing starts on the "Go" cue**, as in the clinical protocol, so the sensor only has to detect the end: the final sit-down (trunk pitch settles and motion stops) for the TUG, rise cycles for chair stands and sit-to-stands, and a departure from the stance posture for balance. Scoring thresholds are named constants at the top of [`src/checkin/signals.py`](src/checkin/signals.py).
 - **Scores are whole-step totals**, so the belt, the phone, and the button don't need sub-second clock alignment.
-- **Local first.** No CDN or web fonts from the network (Chart.js and the font are vendored), JSON files instead of a database, and the dashboard works on an offline access point. The only optional network calls are the Grok family summary and reading it aloud; the spoken check-in cues are committed files.
+- **Local first.** No CDN or web fonts from the network (Chart.js and the font are vendored), JSON files instead of a database, and the dashboard works on an offline access point. The only optional network calls are the Grok family summary, Ask Steadi, reading a summary aloud, and the opt-in animal count. Spoken check-in cues are local files once `scripts/make_voice.py` has generated them; a cue with no file is read by the browser's own voice.
 - **Every session's raw stream is saved** to `data/recordings/`, so any real session can be re-scored after tuning (`checkin replay`) or played back through the live dashboard.
 
 ## Quick start (no hardware)
@@ -115,7 +115,7 @@ Serial port, UDP port (default 4210), and Wi-Fi credentials are settings (flags,
 What is built today:
 
 - **Plain-language family summary.** **Make a summary** sends the doctor summary (numbers only, never the person's name) to a Grok model (`grok-4.3` by default) and asks for 3 to 5 plain sentences for the family. The reply is shown only if it passes guardrails in [`src/checkin/summary.py`](src/checkin/summary.py): no diagnosis, prediction, or guarantee wording, no medical or medication advice, no clinical jargon, and **no number that isn't in the recorded data**. Otherwise, or with no key or no internet, the family gets a fixed-template summary. Set `XAI_API_KEY` to turn it on (`CHECKIN_GROK_MODEL` to change the model).
-- **Ask Steady.** With a key, Home has a question box ("Is he doing his exercises?"). Grok answers in 1 to 3 sentences from the same doctor summary text, and the reply passes the same guardrails before it's shown, labelled AI-written. Questions that need a prediction, diagnosis or medical advice ("Will Dad fall this year?") are never sent; they, and any reply that fails a check, get "I can only answer from the check-in results" plus the fixed-wording summary.
+- **Ask Steadi.** With a key, Home has a question box ("Is he doing his exercises?"). Grok answers in 1 to 3 sentences from the same doctor summary text, and the reply passes the same guardrails before it's shown, labelled AI-written. Questions that need a prediction, diagnosis or medical advice ("Will Dad fall this year?") are never sent; they, and any reply that fails a check, get "I can only answer from the check-in results" plus the fixed-wording summary.
 - **Grok on/off.** The footer on every view reads "Grok: on" or "Grok: off (works offline)", with **Turn Grok off** / **Turn Grok on**. `CHECKIN_AI=off` turns every Grok call off for good. With Grok off, nothing leaves the laptop and everything else works the same.
 - **Instruction pictures.** The pictures on the check-in screen (TUG, chair stand, the three foot positions, sit-to-stand, supported hold) were generated with Grok Imagine by [`scripts/make_images.py`](scripts/make_images.py) and are committed to [`src/checkin/static/img/`](src/checkin/static/img/), so the dashboard needs no network at run time.
 
@@ -128,6 +128,18 @@ XAI_API_KEY=... uv run python scripts/make_voice.py
 
 It skips cues that already have a file, so re-running only pays for new or reworded ones (the filename is a hash of the wording and voice). Commit the new files in `src/checkin/static/audio/`.
 
+## Built in Cursor
+
+We used Cursor to run many agents in parallel, and we sent each kind of task to the model that was better at it.
+
+- **Grok** for rapid idea verification: whether a feature idea, a threshold, or a claim held up before we committed to it.
+- **Claude and Grok** for the backend: signal scoring, the STEADI logic, the session controller, and the API.
+- **Codex and Grok** for a lot of the frontend, including the UI and visual design of the three dashboard views (Home, Check-in, and For the doctor).
+
+Cursor can guide an agent while it is still running, and that was the most useful part of the workflow. We often had a new idea we wanted confirmed while agents were already spinning, and we could steer them instead of stopping and starting over. That is how late ideas, such as the sway warning and the foot-position pictures, made it into the build.
+
+Grok was also part of the product, not only the build. Those features are in [Grok / xAI](#grok--xai): instruction pictures (Grok Imagine), the guarded family summary and Ask Steadi (Grok chat), spoken cues plus Listen (Grok Voice), and the animal count on the dual-task walk (Grok speech to text).
+
 ## Tech stack
 
 | Layer | Choice |
@@ -136,7 +148,7 @@ It skips cues that already have a file, so re-running only pays for new or rewor
 | Frontend | One static page: vanilla HTML/JS, vendored Chart.js 4.5.1 and Archivo font (OFL), no build step |
 | Storage | JSON files per person and CSV recordings in `data/` (git-ignored) |
 | Firmware | Arduino sketches built with `arduino-cli`: ESP32 belt (UDP), Arduino base station (serial) |
-| AI (optional) | xAI Grok chat completions for the family summary and Ask Steady; Grok Imagine for the committed instruction pictures; xAI text to speech for the spoken cues and **Listen**; Grok speech to text to count animals named on the dual-task walk |
+| AI (optional) | xAI Grok chat completions for the family summary and Ask Steadi; Grok Imagine for the committed instruction pictures; xAI text to speech for the spoken cues and **Listen**; Grok speech to text to count animals named on the dual-task walk |
 | Tooling | uv, pytest (including a full simulated check-in scored against the simulator's true values), ruff |
 
 ## Repo layout
@@ -207,5 +219,5 @@ uv run checkin validate --simulated                             # preview on sim
 <!-- TEAM PLACEHOLDER: fill in the three member names, roles, and links. -->
 - **Team:** dh squad (3 members): _names to be added_
 - **Repository:** [github.com/kevinyyin/dhsquad](https://github.com/kevinyyin/dhsquad)
-- Built at HackGT for the Hardware track, the Aramco social good track, and the SpaceXAI / Grok track.
+- Built at HackGT for the Hardware track, the Aramco social good track, and the SpaceXAI / Grok track, in Cursor with parallel agents (Grok, Claude, and Codex). See [Built in Cursor](#built-in-cursor).
 - Clinical tests and cutoffs: CDC [STEADI](https://www.cdc.gov/steadi/). Charts: [Chart.js](https://www.chartjs.org/) (MIT). Font: Archivo (SIL Open Font License, `src/checkin/static/vendor/archivo-OFL.txt`).

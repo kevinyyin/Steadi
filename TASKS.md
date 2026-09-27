@@ -130,8 +130,9 @@ Checked against `main` at `9b760cd`. Paste-ready copy: `docs/devpost-draft.md`.
 - [x] Inspiration, what it does, how we built it, challenges, accomplishments, learned, what's next, built with, track fit, video script
 - [x] Simek 2012 wording checked: 21% fully adherent (95% CI 15–29%), not "stick with a home program"
 - [x] $80 billion kept as non-fatal falls, 2020; CDC "every second, an older adult falls"; about 41,000 deaths
-- [x] Updated for belt beeps, the sway warning, the 0.3 s balance break, Grok Voice, Ask Steady, the Grok switch, `checkin validate`, the animal count, and the carina voice; no belt button
+- [x] Updated for belt beeps, the sway warning, the 0.3 s balance break, Grok Voice, Ask Steadi, the Grok switch, `checkin validate`, the animal count, and the carina voice; no belt button
 - [x] Try it out: https://dhsquad.onrender.com returns the dashboard (`demo: true`, simulator). GitHub stays in the repository field.
 - [x] Gallery plan: 3:2, 5 MB, up to 15; nine slots, CAD only as an optional later frame. No CAD file in the repo.
+- [x] Product renamed Steadi; shorter draft; Cursor and Grok usage in the README and the draft (no claims about other tools)
 - [ ] Team names, stopwatch agreement numbers, per-unit cost
 - [ ] Gallery photos: belt on a person, belt close-up, base station, result light, exercise reps

@@ -17,6 +17,8 @@ const Note CUE_STOP[] = {{1500, 600}};
 const Note CUE_DONE[] = {{2093, 150}, {2637, 150}, {3136, 250}};
 const Note CUE_ERROR[] = {{800, 100}, {0, 80}, {800, 100}, {0, 80}, {800, 100}};
 const Note CUE_REP[] = {{2500, 80}};
+const Note CUE_WARN[] = {{2500, 70}, {0, 70}, {2500, 70}, {0, 70}, {2500, 70}};
+const Note CUE_ALARM[] = {{1000, 250}, {0, 100}, {1000, 250}, {0, 100}, {1000, 250}, {0, 100}, {1000, 250}};
 
 String line;
 bool lastPressed = false;
@@ -50,6 +52,8 @@ void handle(const String& cmd) {
   else if (cmd == "CUE done") PLAY(CUE_DONE);
   else if (cmd == "CUE error") PLAY(CUE_ERROR);
   else if (cmd == "CUE rep") PLAY(CUE_REP);
+  else if (cmd == "CUE warn") PLAY(CUE_WARN);
+  else if (cmd == "CUE alarm") PLAY(CUE_ALARM);
   else if (cmd == "LED off") setLed(0, 0, 0);
   else if (cmd == "LED blue") setLed(0, 0, 255);
   else if (cmd == "LED green") setLed(0, 255, 0);

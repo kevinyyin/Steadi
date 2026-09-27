@@ -106,3 +106,12 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] CLI `checkin validate`; tests; ruff
 - [x] docs/VALIDATION.md protocol + README pointer
 - [x] End-to-end on simulated data; copy sample images to the project store media/validation/
+
+## Grok Voice cues (2026-09-27)
+
+- [x] `voice.py`: phrase list from the controller's own prompts, hashed filenames, xAI TTS call, cache
+- [x] `scripts/make_voice.py` (skip existing, prune unused, `--dry-run` cost) and `static/audio/index.json`
+- [x] Check-in screen speaks waiting prompts, rest, and the closing line; hushes at Go; browser voice fallback
+- [x] Listen on the family summary (`/api/people/{id}/summary/audio`, only the served text, cached)
+- [x] Tests, ruff, README, API.md
+- [ ] Generate the audio with a real XAI_API_KEY and commit `src/checkin/static/audio/*.mp3` (no key on the agent VM)

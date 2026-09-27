@@ -302,3 +302,32 @@ def test_cancel_after_the_last_step_is_scored_saves_nothing(tmp_path):
             "balance": {"stance": "feet_together", "holds": 1, "target_s": 20.0}}
     assert drive(ctl, ctl.run_session(person["id"], "exercise", plan)) is None
     assert store.get(person["id"])["exercise"] == []
+
+
+def test_steady_checkin_never_warns_or_alarms(tmp_path):
+    ctl, source, base, store, person = make(tmp_path, sim.SimParams(hold_s=ALL_HOLD))
+    drive(ctl, ctl.run_session(person["id"], "checkin"))
+    assert "warn" not in base.cues and "alarm" not in base.cues
+
+
+def test_losing_balance_sounds_the_alarm(tmp_path):
+    ctl, source, base, store, person = make(tmp_path, sim.SimParams(hold_s={**ALL_HOLD, "semi_tandem": 3.0}))
+    drive(ctl, ctl.run_session(person["id"], "checkin"))
+    assert base.cues.count("alarm") == 1  # the semi-tandem stance, which then ends the balance tests
+
+
+def test_heavy_sway_beeps_a_warning_without_ending_the_stance(tmp_path):
+    ctl, source, base, store, person = make(tmp_path, sim.SimParams(hold_s=ALL_HOLD, sway=2.0))
+    plan = {"sit_to_stand": {"sets": 0, "reps": 1}, "balance": {"stance": "tandem", "holds": 1, "target_s": 10.0}}
+    record = drive(ctl, ctl.run_session(person["id"], "exercise", plan))
+    assert 1 <= base.cues.count("warn") <= 10  # at most one a second
+    assert "alarm" not in base.cues and record["holds"][0]["hold_s"] == 10.0
+
+
+def test_every_emitted_waiting_state_carries_its_prompt(tmp_path):
+    ctl, _, _, _, person = make(tmp_path, sim.SimParams(hold_s=ALL_HOLD))
+    events = []
+    ctl.on_event = events.append
+    drive(ctl, ctl.run_session(person["id"], "checkin"))
+    waiting = [e for e in events if e["type"] == "state" and any(s["status"] == "waiting" for s in e["steps"])]
+    assert waiting and all(e["prompt"] for e in waiting)

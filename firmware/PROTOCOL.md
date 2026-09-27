@@ -61,3 +61,7 @@ Axes are the MPU-6050's own. The laptop's scoring doesn't care how the belt is m
 The laptop maps `ms` to its own clock using the smallest (arrival time − newest sample time) seen, and starts over if `ms` jumps backwards (the belt rebooted).
 
 Watch it live: `nc -ul 4210` (macOS/Linux).
+
+## Laptop → belt (UDP)
+
+With `--source udp`, the laptop lights the belt's RGB LED: it sends `LED off` / `LED blue` / `LED green` / `LED amber` / `LED red` (same meanings as the base station) back to the address the belt's samples come from, once on every change and again every second, so a lost datagram or a belt reboot still ends up showing the right colour. The belt listens on `UDP_PORT`. Pins: red 19, green 18, blue 17 (override `LED_R_PIN` etc. in `config.h`; `LED_COMMON_ANODE true` for a common-anode LED).

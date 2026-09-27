@@ -73,6 +73,8 @@ let newPerson = false; // the profile form is adding a person, not editing this 
 let lastPerson = null;
 let hasCheckin = false;
 let making = false;
+let aiStatus = null; // GET /api/ai; null until loaded, then Ask Steady stays hidden unless it's on
+let asking = false;
 let everOnline = false; // the first failed connection says "can't connect", later ones "lost the connection"
 const LAST_PERSON = "checkin.person"; // this browser reopens on the person it showed last
 const charts = {};
@@ -507,10 +509,12 @@ function connect() {
     everOnline = true;
     renderWarnings();
     if (reconnected) run(loadPeople); // the laptop may have restarted, or the first load failed
+    run(loadAi);
   };
   ws.onmessage = (e) => {
     const ev = JSON.parse(e.data);
     if (ev.type === "state") renderState(ev);
+    else if (ev.type === "ai") renderAi(ev);
     else if (ev.type === "cue") play(ev.name);
     else if (ev.type === "saved" && ev.person_id === personId) loadDashboard();
   };
@@ -541,6 +545,7 @@ async function loadDashboard() {
   renderHome(d);
   renderDoctor(d);
   clearSummary(); // made on request for the data shown then; a reload (new person, new save) makes it stale
+  clearAsk();
 }
 
 function renderProfile(person) {
@@ -720,6 +725,7 @@ function renderHome(d) {
   $("answer-plan").hidden = !extras.length;
   $("answer-note").hidden = !flagged;
   hasCheckin = !!latest;
+  renderAsk();
   for (const id of ["make-summary", "make-summary-doctor"]) $(id).disabled = !latest;
   $("family-make-text").textContent = latest
     ? "A short summary of how things are going, in plain words. It can take a few seconds to write."
@@ -1215,6 +1221,67 @@ async function copyText(text, b, label) {
   setTimeout(() => (b.textContent = label), 2000);
 }
 
+// ---- Grok: one switch (GET/PUT /api/ai) for the summary, Ask Steady and every other AI call ------------
+async function loadAi() {
+  renderAi(await api("GET", "/api/ai"));
+}
+
+function renderAi(s) {
+  aiStatus = s;
+  $("ai-line").textContent = s.on ? "Grok: on" : "Grok: off (works offline)";
+  $("ai-why").textContent = s.on
+    ? "Summaries and questions are sent to xAI without the name."
+    : s.blocked_by === "no key" ? "No xAI key is set, so nothing leaves the laptop."
+    : s.blocked_by === "setting" ? "Turned off by the CHECKIN_AI setting, so nothing leaves the laptop."
+    : "Nothing leaves the laptop.";
+  $("ai-toggle").hidden = !s.available;
+  $("ai-toggle").textContent = s.on ? "Turn Grok off" : "Turn Grok on";
+  renderAsk();
+}
+
+function renderAsk() {
+  $("ask").hidden = !(aiStatus && aiStatus.on && hasCheckin);
+}
+
+function clearAsk() {
+  $("ask-out").hidden = true;
+  $("ask-q").value = "";
+  $("ask-tag").replaceChildren();
+}
+
+async function askSteady(e) {
+  e.preventDefault();
+  const q = $("ask-q").value.trim();
+  if (asking || !q) return;
+  asking = true;
+  const pid = personId;
+  const b = $("ask-go");
+  b.setAttribute("aria-busy", "true");
+  b.textContent = "Asking…";
+  say("");
+  try {
+    const r = await api("POST", `/api/people/${encodeURIComponent(pid)}/ask`, { question: q });
+    if (pid !== personId) return;
+    $("ask-question").textContent = q;
+    $("ask-answer").textContent = r.answer || "Grok couldn't answer just now. Here is the summary instead.";
+    $("ask-summary").textContent = r.summary || "";
+    $("ask-summary").hidden = !r.summary;
+    $("ask-by").replaceChildren(
+      r.by === "ai" ? h("span", "AI-written", { class: "tag tag-ai" })
+        : r.by === "blocked" ? h("span", `Held back by the claims check: ${r.reason}`, { class: "note" }) : "",
+    );
+    $("ask-tag").replaceChildren(r.simulated ? simTag() : "");
+    $("ask-out").hidden = false;
+  } catch (err) {
+    if (pid === personId) say(`Couldn't ask: ${err.message}`);
+    if (err.status === 503) run(loadAi);
+  } finally {
+    asking = false;
+    b.removeAttribute("aria-busy");
+    b.textContent = "Ask";
+  }
+}
+
 // ---- controls -----------------------------------------------------------------------------------
 async function run(fn) {
   try {
@@ -1341,6 +1408,8 @@ $("add-person").onclick = () => ($("profile-panel").hidden || !newPerson ? openP
 $("close-profile").onclick = () => closeProfile();
 $("make-summary").onclick = makeSummary;
 $("make-summary-doctor").onclick = makeSummary;
+$("ask-form").onsubmit = askSteady;
+$("ai-toggle").onclick = () => run(async () => renderAi(await api("PUT", "/api/ai", { on: !aiStatus.on })));
 $("copy-summary").onclick = () => copyText($("family-text").textContent, $("copy-summary"), "Copy summary");
 $("copy-doctor").onclick = () => copyText(`${docHead()}\n\n${$("doctor-text").textContent}`, $("copy-doctor"), "Copy text");
 $("print-doctor").onclick = () => {

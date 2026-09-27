@@ -247,6 +247,20 @@
   .family-text:empty { margin: 0; }
   .family-actions { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
   .home-note { margin-top: clamp(32px, 4vw, 48px); padding-top: 18px; border-top: 1px solid var(--line); }
+  .ask-form { display: flex; flex-wrap: wrap; gap: 12px; max-width: 900px; }
+  .ask-form input {
+    flex: 1 1 28ch; font: inherit; font-weight: 500; color: var(--ink); background: var(--paper);
+    min-height: 52px; padding: 8px 14px; border: 1.5px solid #8a8fa3; border-radius: 3px;
+  }
+  .ask-form input:hover { border-color: var(--ink); }
+  .ask-note { margin-top: 12px; }
+  .ask-out { margin-top: 12px; }
+  .ask-question { margin-top: 20px; font-weight: 700; }
+  .ask-question + .family-text { margin-top: 8px; }
+  .ask-summary { margin-top: 14px; max-width: 60ch; }
+  .ai-foot { border-top: 1px solid var(--line); background: var(--paper); }
+  .ai-foot .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding-block: 14px; }
+  body[data-running="true"] .ai-foot { display: none; }
 
   .profile-panel { border-bottom: 1px solid var(--line); }
   .fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; }
@@ -579,6 +593,25 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       <p class="note home-note">This is fall-risk screening. It flags increased fall risk and tracks change over time. It does not diagnose anything; a doctor can do a full fall-risk assessment.</p>
     </div>
   </section>
+
+  <section id="ask" class="block" aria-labelledby="ask-h" hidden>
+    <div class="wrap">
+      <div class="sec-head"><h2 id="ask-h" class="label">Ask Steady</h2><span id="ask-tag"></span></div>
+      <form id="ask-form" class="ask-form">
+        <label for="ask-q" class="visually-hidden">Your question</label>
+        <input id="ask-q" name="q" maxlength="200" autocomplete="off" required
+          placeholder="For example: How are the exercises going?">
+        <button id="ask-go" class="btn btn-primary" type="submit">Ask</button>
+      </form>
+      <p class="note ask-note">Grok answers from the check-in results only, and every answer is checked before it's shown: no predictions, diagnoses or medical advice.</p>
+      <div id="ask-out" class="ask-out" aria-live="polite" hidden>
+        <p id="ask-question" class="ask-question"></p>
+        <p id="ask-answer" class="family-text"></p>
+        <p id="ask-summary" class="ask-summary" hidden></p>
+        <div class="family-actions"><span id="ask-by"></span></div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <!-- ============================ CHECK-IN: the older adult, one step at a time ============================ -->
@@ -730,6 +763,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   </section>
 </div>
 </main>
+<footer class="ai-foot">
+  <div class="wrap">
+    <p><b id="ai-line">Grok: …</b> <span id="ai-why" class="note"></span></p>
+    <button id="ai-toggle" class="link" type="button" hidden></button>
+  </div>
+</footer>
 
 <script src="/static/vendor/chart.umd.min.js"></script>
 <script src="/static/app.js"></script>

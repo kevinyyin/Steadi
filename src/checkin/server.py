@@ -1,7 +1,9 @@
 """FastAPI app: the JSON + WebSocket API in docs/API.md, plus the static dashboard."""
 
 import asyncio
+import collections
 import contextlib
+import time
 from datetime import date
 from pathlib import Path
 from typing import Literal
@@ -11,7 +13,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import steadi, summary
+from . import ai, steadi, summary
 from .controller import Busy
 
 STATIC = Path(__file__).parent / "static"
@@ -60,6 +62,17 @@ class SessionIn(BaseModel):
 
 class StopIn(BaseModel):
     reason: Literal["arms_used", "cancel"]
+
+
+class AskIn(BaseModel):
+    question: str = Field(min_length=1, max_length=200)
+
+
+class AiIn(BaseModel):
+    on: bool
+
+
+ASK_PER_MINUTE = 10  # the xAI budget is shared: a stuck key or a public page can't run it down
 
 
 def create_app(controller, store, today=date.today, demo=False):
@@ -129,6 +142,40 @@ def create_app(controller, store, today=date.today, demo=False):
     @app.get("/api/people/{pid}/summary")
     def person_summary(pid: str):
         return summary.summaries(steadi.dashboard(person_or_404(pid), today()))
+
+    asked = collections.deque()  # times of recent Grok-bound questions
+    answers = {}  # (person, latest check-in, question) -> reply, so a rehearsed question costs one call
+
+    @app.post("/api/people/{pid}/ask")
+    def ask(pid: str, body: AskIn):
+        dash = steadi.dashboard(person_or_404(pid), today())
+        if not ai.ai_enabled():
+            raise HTTPException(503, "Grok is off")
+        question = " ".join(body.question.split())
+        key = (pid, (dash["latest"] or {}).get("id"), question.lower())
+        if key in answers:
+            return answers[key]
+        now = time.monotonic()
+        while asked and now - asked[0] > 60:
+            asked.popleft()
+        if len(asked) >= ASK_PER_MINUTE:
+            raise HTTPException(429, "Too many questions in a minute. Try again shortly.")
+        asked.append(now)
+        out = summary.answer(dash, question)
+        if out["by"] != "template":  # a failed call isn't cached, so it's tried again
+            answers[key] = out
+        return out
+
+    @app.get("/api/ai")
+    def ai_status():
+        return ai.status()
+
+    @app.put("/api/ai")
+    async def set_ai(body: AiIn):  # async: broadcast() isn't thread-safe
+        ai.set_enabled(body.on)
+        out = ai.status()
+        broadcast({"type": "ai", **out})
+        return out
 
     @app.post("/api/session", status_code=202)
     def start_session(body: SessionIn):

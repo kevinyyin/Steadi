@@ -147,8 +147,57 @@ def test_demo_blocks_adding_and_editing_people(tmp_path):
         assert c.get("/api/state").json()["demo"] is True
         assert c.post("/api/people", json=PROFILE).status_code == 403
         assert c.put("/api/people/sim-dad", json=PROFILE).status_code == 403
+        assert c.put("/api/ai", json={"on": False}).status_code == 403  # one visitor can't switch Grok for all
         assert c.get("/api/people/sim-dad/dashboard").status_code == 200
 
 
 def test_state_says_not_demo_by_default(client):
     assert client.get("/api/state").json()["demo"] is False
+
+
+@pytest.fixture
+def grok(monkeypatch):
+    """A key is set and every Grok call is answered here instead of by xAI."""
+    from checkin import ai, summary
+
+    monkeypatch.setenv("XAI_API_KEY", "test-key")
+    monkeypatch.delenv("CHECKIN_AI", raising=False)
+    calls = []
+
+    def fake(system, user):
+        if not ai.ai_enabled():
+            return None
+        calls.append(user)
+        return "Balance was held for the full time at the last check-in."
+
+    monkeypatch.setattr(summary, "grok_ask", fake)
+    ai.set_enabled(True)
+    yield calls
+    ai.set_enabled(True)
+
+
+def test_ask_steady_over_the_api(client, grok):
+    r = client.post("/api/people/sim-dad/ask", json={"question": "How is his balance?"})
+    assert r.status_code == 200 and r.json()["by"] == "ai" and len(grok) == 1
+    client.post("/api/people/sim-dad/ask", json={"question": "how is his  balance?"})
+    assert len(grok) == 1  # the same question again is answered from memory
+    r = client.post("/api/people/sim-dad/ask", json={"question": "Will Dad fall this year?"})
+    assert r.json()["by"] == "blocked" and r.json()["summary"] and len(grok) == 1
+    assert client.post("/api/people/sim-dad/ask", json={"question": ""}).status_code == 422
+    assert client.post("/api/people/nobody/ask", json={"question": "Hi?"}).status_code == 404
+
+
+def test_the_grok_switch_turns_every_call_off(client, grok):
+    assert client.get("/api/ai").json() == {"on": True, "available": True, "blocked_by": None}
+    assert client.put("/api/ai", json={"on": False}).json()["on"] is False
+    assert client.post("/api/people/sim-dad/ask", json={"question": "How is his balance?"}).status_code == 503
+    assert client.get("/api/people/sim-dad/summary").json()["family_by"] == "template"
+    assert grok == []
+    client.put("/api/ai", json={"on": True})
+    assert client.get("/api/people/sim-dad/summary").json()["family_by"] == "ai"
+
+
+def test_ask_steady_is_off_without_a_key(client, monkeypatch):
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
+    assert client.get("/api/ai").json()["blocked_by"] == "no key"
+    assert client.post("/api/people/sim-dad/ask", json={"question": "How is his balance?"}).status_code == 503

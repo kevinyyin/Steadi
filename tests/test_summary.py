@@ -133,3 +133,75 @@ def test_no_checkins_never_calls_the_ai(tmp_path):
 def test_grok_ask_without_a_key_makes_no_call(monkeypatch):
     monkeypatch.delenv("XAI_API_KEY", raising=False)
     assert summary.grok_ask("system", "user") is None
+
+
+def test_grok_ask_makes_no_call_when_switched_off(monkeypatch):
+    monkeypatch.setenv("XAI_API_KEY", "test-key")
+    monkeypatch.setenv("CHECKIN_AI", "off")
+
+    def no_network(*a, **k):
+        raise AssertionError("called xAI")
+
+    monkeypatch.setattr(summary.urllib.request, "urlopen", no_network)
+    assert summary.grok_ask("system", "user") is None
+
+
+def test_ask_steady_answers_from_the_results(dad):
+    seen = {}
+
+    def ask(system, user):
+        seen["user"] = user
+        return "He did his exercises on 3 of the target 5 days last week."
+
+    d = dash(dad)
+    days = d["adherence"]["last_7_days"], d["adherence"]["target_days_per_week"]
+    ask_ok = lambda s, u: ask(s, u).replace("3 of the target 5", "{} of the target {}".format(*days))  # noqa: E731
+    out = summary.answer(d, "Is he doing his exercises?", ask=ask_ok)
+    assert out["by"] == "ai" and out["summary"] is None and out["simulated"]
+    assert out["answer"].startswith("Simulated data. He did his exercises on")
+    assert "Is he doing his exercises?" in seen["user"] and summary.doctor(d) in seen["user"]
+    assert "Simulated: Dad" not in seen["user"]  # no name is sent
+
+
+def test_ask_steady_never_sends_a_prediction_question(dad):
+    def fail(system, user):
+        raise AssertionError("called")
+
+    for q in ("Will Dad fall this year?", "Is he going to fall?", "What are the odds he falls?",
+              "Should he change his medication?"):
+        out = summary.answer(dash(dad), q, ask=fail)
+        assert out["by"] == "blocked" and out["answer"] == summary.CANT_ANSWER, q
+        assert out["summary"].startswith("Simulated data. The check-in on"), q
+
+
+@pytest.mark.parametrize(
+    "reply",
+    ["He is unlikely to fall this year.", "His balance predicts no falls.", "He held it for 99 seconds.",
+     "His tandem stance is fine."],
+)
+def test_ask_steady_blocks_a_reply_that_fails_the_check(dad, reply):
+    out = summary.answer(dash(dad), "How is his balance?", ask=lambda s, u: reply)
+    assert out["by"] == "blocked" and out["answer"] == summary.CANT_ANSWER and out["reason"]
+    assert out["summary"].startswith("Simulated data.")
+
+
+def test_ask_steady_falls_back_when_offline(dad):
+    def offline(system, user):
+        raise OSError("no internet")
+
+    out = summary.answer(dash(dad), "How is his balance?", ask=offline)
+    assert out["by"] == "template" and out["answer"] is None and out["summary"]
+
+
+@pytest.mark.parametrize("reply", [
+    "She is healthy and does not need to see a doctor.",
+    "Yes, she can stop using her cane now.",
+    "Her risk of falling is low.",
+])
+def test_reassurance_a_screening_cant_give_is_rejected(reply):
+    assert summary.FORBIDDEN.search(reply)
+
+
+@pytest.mark.parametrize("question", ["How likely is he to fall?", "Is it safe for her to stop using her cane?"])
+def test_risk_and_cane_questions_never_reach_grok(question):
+    assert summary.ASK_FORBIDDEN.search(question)

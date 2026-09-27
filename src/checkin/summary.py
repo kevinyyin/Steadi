@@ -2,8 +2,9 @@
 
 The doctor summary is built only from the recorded numbers. The family summary is written by a Grok
 model from that same text (no name sent), and is used only if it passes the checks below; otherwise, or
-with no key or no internet, the family gets a fixed-template summary. Settings: XAI_API_KEY,
-CHECKIN_GROK_MODEL.
+with no key or no internet, the family gets a fixed-template summary. Ask Steady answers the family's
+questions from the same text under the same checks. Settings: XAI_API_KEY, CHECKIN_GROK_MODEL, CHECKIN_AI
+(see ai.py).
 """
 
 import json
@@ -13,7 +14,7 @@ import re
 import urllib.request
 from datetime import datetime
 
-from . import steadi
+from . import ai, steadi
 
 log = logging.getLogger(__name__)
 GROK_URL = "https://api.x.ai/v1/chat/completions"
@@ -23,7 +24,9 @@ NUMBER = re.compile(r"\d+(?:\.\d+)?")
 # Claims we never make (CLAUDE.md): diagnosis, predicting a fall, guaranteed prevention, medical advice.
 FORBIDDEN = re.compile(
     r"diagnos|predict|will (?:likely |probably )?fall|going to fall|guarantee|prevents? (?:all |any )?falls"
-    r"|medicat|prescri|dosage",
+    r"|(?:un)?likely to fall|won.t fall|will not fall|never fall|safe from fall"
+    r"|medicat|prescri|dosage"
+    r"|\bhealthy\b|low risk|risk (?:of falling )?is low|stop using|(?:no|doesn.t|does not) need (?:to see )?a doctor",
     re.IGNORECASE,
 )
 # Words the family never sees (CLAUDE.md): an AI summary using them falls back to the template.
@@ -43,6 +46,22 @@ SYSTEM = (
     "from the summary you are given, and no other numbers. Say 'flags increased fall risk' for a flag. Never "
     "diagnose, predict whether or when someone will fall, promise that falls will be prevented, or give medical "
     "or medication advice. If anything is flagged, suggest mentioning it at the next doctor's visit."
+)
+ASK_SYSTEM = (
+    "You answer a family member's question about an older adult's weekly fall-risk screening at home. Answer "
+    "in 1 to 3 plain sentences, using only facts and numbers from the check-in results you are given, and no "
+    "other numbers. If the results don't answer the question, say so. Use the family's words (standing up and "
+    "walking, leg strength, balance) and never write STEADI, Timed Up and Go, TUG, tandem, sway, baseline, or "
+    "dual-task. Write dates as month and day. Say 'flags increased fall risk' for a flag. Never diagnose, "
+    "predict whether or when someone will fall, promise that falls will be prevented, or give medical or "
+    "medication advice."
+)
+CANT_ANSWER = "I can only answer from the check-in results."
+# Questions only a prediction, diagnosis or medical advice could answer: not sent to Grok at all.
+ASK_FORBIDDEN = re.compile(
+    r"\bwill\b.*\bfall|going to fall|chances? of (?:him |her |them )?falling|odds|predict|diagnos|guarantee"
+    r"|medicat|prescri|dosage|\bpills?\b|\bdrugs?\b|how likely|stop using",
+    re.IGNORECASE,
 )
 
 
@@ -199,9 +218,9 @@ def check(text, facts):
 
 
 def grok_ask(system, user):
-    """The model's reply, or None with no API key. Raises on network or API errors."""
+    """The model's reply, or None with no API key or Grok switched off. Raises on network or API errors."""
     key = os.environ.get("XAI_API_KEY")
-    if not key:
+    if not key or not ai.ai_enabled():
         return None
     body = {
         "model": os.environ.get("CHECKIN_GROK_MODEL", DEFAULT_MODEL),
@@ -215,13 +234,13 @@ def grok_ask(system, user):
         return json.loads(r.read())["choices"][0]["message"]["content"].strip()
 
 
-def summaries(dash, ask=grok_ask):
+def summaries(dash, ask=None):
     """{"doctor", "family", "family_by": "ai" | "template", "simulated"}."""
     facts = doctor(dash)
     family, by = template(dash), "template"
     if dash["latest"]:
         try:
-            text = ask(SYSTEM, facts)
+            text = (ask or grok_ask)(SYSTEM, facts)
         except Exception as e:  # offline, bad key, rate limit, odd reply: the template still works
             log.warning("AI summary unavailable: %s", e)
             text = None
@@ -230,7 +249,40 @@ def summaries(dash, ask=grok_ask):
             log.warning("AI summary rejected (%s): %s", problem, text)
         elif text:
             family, by = text, "ai"
-    simulated = dash["person"]["simulated"] or any(dash["trends"]["simulated"])
+    simulated = _simulated(dash)
     if simulated:
         family = "Simulated data. " + family
     return {"doctor": facts, "family": family, "family_by": by, "simulated": simulated}
+
+
+def _simulated(dash):
+    return dash["person"]["simulated"] or any(dash["trends"]["simulated"])
+
+
+def answer(dash, question, ask=None):
+    """Ask Steady: {"by": "ai" | "blocked" | "template", "answer", "summary", "reason", "simulated"}.
+
+    "ai": Grok's reply passed check(). "blocked": the question asks for a prediction or diagnosis, or the
+    reply failed check(); the family sees CANT_ANSWER and the template summary. "template": Grok is off,
+    offline or has no check-in to go on, so only the template summary is shown.
+    """
+    simulated = _simulated(dash)
+    sim = "Simulated data. " if simulated else ""
+    out = {"by": "template", "answer": None, "summary": sim + template(dash), "reason": None, "simulated": simulated}
+    if not dash["latest"]:
+        return out
+    if ASK_FORBIDDEN.search(question):
+        return {**out, "by": "blocked", "answer": CANT_ANSWER, "reason": "asks for a prediction or medical advice"}
+    facts = doctor(dash)
+    try:
+        text = (ask or grok_ask)(ASK_SYSTEM, f"Check-in results:\n{facts}\n\nQuestion: {question}")
+    except Exception as e:
+        log.warning("Ask Steady unavailable: %s", e)
+        return out
+    if not text:
+        return out
+    problem = check(text, facts)
+    if problem:
+        log.warning("Ask Steady reply rejected (%s): %s", problem, text)
+        return {**out, "by": "blocked", "answer": CANT_ANSWER, "reason": problem}
+    return {**out, "by": "ai", "answer": sim + text, "summary": None}

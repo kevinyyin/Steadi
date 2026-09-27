@@ -15,7 +15,7 @@ Every device sits behind the same interface, so mix and match:
 | `csv:data/recordings/FILE.csv` | either | Replay a real recorded session through the live dashboard |
 | `sim` | `serial` | Test the Arduino on its own |
 
-Settings are flags or environment variables, never code: `--udp-port` / `CHECKIN_UDP_PORT` (default 4210), `--serial-port` / `CHECKIN_SERIAL_PORT`, `--port` (default 8000), `--data` (default `data/`). Optional AI family summary: `XAI_API_KEY` (and `CHECKIN_GROK_MODEL`, default `grok-4.3`); without it the summary uses fixed wording and nothing leaves the laptop.
+Settings are flags or environment variables, never code: `--udp-port` / `CHECKIN_UDP_PORT` (default 4210), `--serial-port` / `CHECKIN_SERIAL_PORT`, `--port` (default 8000), `--data` (default `data/`). Optional AI family summary: `XAI_API_KEY` (and `CHECKIN_GROK_MODEL`, default `grok-4.3`); without it the summary uses fixed wording and nothing leaves the laptop. `CHECKIN_AI=off` turns every Grok call off even with a key.
 
 Tablet on the same network: http://LAPTOP-IP:8000 (the server listens on all interfaces; macOS asks once to allow incoming connections).
 

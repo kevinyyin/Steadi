@@ -1,7 +1,7 @@
 # Check-in API
 
 Everything the dashboard shows comes from here, so the UI can be rebuilt without touching the backend.
-Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside calls are the optional AI family summary (below), which sends the doctor summary text, with no name, to xAI Grok, and reading that family summary aloud on request (`/summary/audio`).
+Served by `uv run checkin serve` at `http://<laptop>:8000`. JSON everywhere; no auth (it's on the home network). The only outside calls are the optional AI family summary and Ask Steady (below), which send the doctor summary text, with no name, to xAI Grok, and reading that family summary aloud on request (`/summary/audio`); `CHECKIN_AI=off` or the dashboard's Grok switch stops them.
 
 Units: seconds (`_s`), percent (`_pct`), sway in m/s² (RMS horizontal acceleration at the lower back).
 `null` means "not measured" (for example the belt dropped out); it never means zero.
@@ -69,6 +69,7 @@ Sends the state on connect, then events:
 | `{"type": "state", ...}` | Any state change; about 4 per second while a step runs, once a second when idle |
 | `{"type": "cue", "name": "start" \| "stop" \| "done" \| "error" \| "rep"}` | A buzzer cue. Play it only when `state.base == "virtual"`; tones are in `firmware/PROTOCOL.md` |
 | `{"type": "saved", "person_id": "guest", "mode": "checkin", "id": "20260926-100516-checkin"}` | A session was saved: refetch that person's dashboard |
+| `{"type": "ai", "on": false, "available": true, "blocked_by": null}` | The Grok switch changed (same body as `GET /api/ai`) |
 
 ## Controls
 
@@ -151,6 +152,22 @@ Two text summaries of the dashboard, for a "summary" panel and for printing befo
 - `family`: 3–5 plain sentences. `family_by` is `"ai"` when a Grok model wrote it from the `doctor` text, or `"template"` (fixed wording) when there's no `XAI_API_KEY`, no internet, or the AI reply failed a check: a number that isn't in the data, a forbidden claim (diagnosis, predicting a fall, guaranteed prevention, medication), or clinical words the family never sees (STEADI, Timed Up and Go, TUG, tandem, sway, baseline, dual-task). The fixed wording names flags the way the Home cards do ("Leg strength: 10 stand-ups from a chair in 30 seconds, fewer than average for men 75–79."); a check-in raised only by a sustained decline "showed a change from usual" rather than "flags increased fall risk", since the decline rule is ours, not STEADI's. Label the AI text as AI-written.
 - With an AI key set, the call can take a few seconds: fetch it when the user asks, not with every dashboard load.
 - `simulated`: the text already starts with "Simulated data." / "SIMULATED DATA"; still show the usual Simulated tag.
+
+### `POST /api/people/{id}/ask` (Ask Steady)
+
+Body `{"question": "Is he doing his exercises?"}` (1–200 characters). Grok answers in 1–3 sentences from the `doctor` summary text only (no name sent), and the reply goes through the same checks as the family summary.
+
+```json
+{"by": "ai", "answer": "Simulated data. He exercised on 4 of the target 5 days last week.", "summary": null,
+ "reason": null, "simulated": true}
+```
+
+- `by`: `"ai"` (label it AI-written); `"blocked"`: `answer` is "I can only answer from the check-in results." and `summary` is the fixed-wording family summary. `reason` says why: the question asks for a prediction or medical advice (never sent to Grok), or the reply failed a check. `"template"`: Grok was unreachable or there's no check-in yet; `answer` is `null`, show `summary`.
+- `503` while Grok is off (`GET /api/ai`), `429` after 10 Grok-bound questions in a minute. The same question about the same check-in is answered from memory, without a new call.
+
+### `GET /api/ai`, `PUT /api/ai`
+
+The one switch for every Grok call (family summary, Ask Steady, and later AI features: server code checks `checkin.ai.ai_enabled()`). `GET` returns `{"on": true, "available": true, "blocked_by": null}`; `blocked_by` is `"no key"` (no `XAI_API_KEY`) or `"setting"` (`CHECKIN_AI=off`), and then `on` stays false. `PUT {"on": false}` switches it until the server restarts, and broadcasts an `ai` event.
 
 ### `GET /api/people/{id}/summary/audio`
 

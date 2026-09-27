@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 980" width="1120" height="980" role="img" aria-labelledby="belt-status-title belt-status-desc">
+  <title id="belt-status-title">Belt status LED and buzzer pins</title>
+  <desc id="belt-status-desc">The belt RGB LED uses GPIO 19, 18, and 17, and the active buzzer uses GPIO 16, matching the ESP32 sketch and the LED pins in the protocol.</desc>
+  <defs>
+    <marker id="belt-status-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/>
+    </marker>
+    <marker id="belt-status-arrow-back" markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto">
+      <polygon points="8 0, 0 3, 8 6" fill="#4f5d75"/>
+    </marker>
+    <marker id="belt-status-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/>
+    </marker>
+    <marker id="belt-status-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#f5f5f5"/>
+  <text x="48" y="44" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" letter-spacing="0.14em">STEADY  ·  WIRING</text>
+  <text x="48" y="96" fill="#2d3142" font-size="36" font-family="'Noto Serif', Georgia, 'Times New Roman', serif">Belt status LED and buzzer pins</text>
+  <text x="48" y="138" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">One pin per line. These pins are in the ESP32 sketch. The parts list does not</text>
+  <text x="48" y="164" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">name a series resistor for this LED.</text>
+  <rect x="48" y="202" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="202" width="300" height="68" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.5"/>
+  <text x="198.0" y="232" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">ESP32</text>
+  <text x="198.0" y="254" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">Classic dev board</text>
+  <rect x="772" y="202" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="202" width="300" height="68" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.5"/>
+  <text x="922.0" y="232" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">On the belt</text>
+  <text x="922.0" y="254" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">LED and buzzer</text>
+  <line x1="348" y1="336" x2="772" y2="336" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="302" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="302" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="332" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GPIO 19</text>
+  <text x="198.0" y="354" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">LED_R_PIN</text>
+  <rect x="772" y="302" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="302" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="342" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Red</text>
+  <line x1="348" y1="436" x2="772" y2="436" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="402" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="402" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="432" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GPIO 18</text>
+  <text x="198.0" y="454" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">LED_G_PIN</text>
+  <rect x="772" y="402" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="402" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="442" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Green</text>
+  <line x1="348" y1="536" x2="772" y2="536" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="502" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="502" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="532" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GPIO 17</text>
+  <text x="198.0" y="554" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">LED_B_PIN, TX2</text>
+  <rect x="772" y="502" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="502" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="542" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Blue</text>
+  <line x1="348" y1="636" x2="772" y2="636" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="602" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="602" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="632" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GPIO 16</text>
+  <text x="198.0" y="654" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">BUZZER_PIN, RX2</text>
+  <rect x="772" y="602" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="602" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="632" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Active buzzer</text>
+  <text x="922.0" y="654" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">Pin high to beep</text>
+  <text x="48" y="710" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">Default is common-cathode: LED_COMMON_ANODE is false. For common-anode, the long leg goes to</text>
+  <text x="48" y="736" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">3V3 and that flag is set true.</text>
+  <text x="48" y="770" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">BUZZER_ACTIVE defaults to true, so the buzzer sounds on its own when the pin is high. The</text>
+  <text x="48" y="796" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">other buzzer leg is not named in the docs.</text>
+  <text x="48" y="830" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">Override any of these in firmware/esp32_imu/config.h.</text>
+  <line x1="48" y1="880" x2="1072" y2="880" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+  <text x="48" y="912" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" letter-spacing="0.14em">LEGEND</text>
+  <line x1="160" y1="908" x2="196" y2="908" stroke="#4f5d75" stroke-width="2"/>
+  <text x="206" y="912" fill="#4f5d75" font-size="14" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">One pin, as named in the sketch</text>
+</svg>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 1028" width="1120" height="1028" role="img" aria-labelledby="belt-mpu6050-title belt-mpu6050-desc">
+  <title id="belt-mpu6050-title">MPU-6050 wiring on a classic ESP32</title>
+  <desc id="belt-mpu6050-desc">Four jumpers from the MPU-6050 to a classic ESP32: VCC to 3V3, GND to GND, SDA to GPIO 21, and SCL to GPIO 22, plus an optional AD0 tie to GND for address 0x68.</desc>
+  <defs>
+    <marker id="belt-mpu6050-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/>
+    </marker>
+    <marker id="belt-mpu6050-arrow-back" markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto">
+      <polygon points="8 0, 0 3, 8 6" fill="#4f5d75"/>
+    </marker>
+    <marker id="belt-mpu6050-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/>
+    </marker>
+    <marker id="belt-mpu6050-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#f5f5f5"/>
+  <text x="48" y="44" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" letter-spacing="0.14em">STEADY  ·  WIRING</text>
+  <text x="48" y="96" fill="#2d3142" font-size="36" font-family="'Noto Serif', Georgia, 'Times New Roman', serif">MPU-6050 wiring on a classic ESP32</text>
+  <text x="48" y="138" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">One wire per line. Female-to-female jumpers. No breadboard on the belt.</text>
+  <rect x="48" y="176" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="176" width="300" height="68" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.5"/>
+  <text x="198.0" y="206" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">MPU-6050</text>
+  <text x="198.0" y="228" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">GY-521 breakout</text>
+  <rect x="772" y="176" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="176" width="300" height="68" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.5"/>
+  <text x="922.0" y="206" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">ESP32</text>
+  <text x="922.0" y="228" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">Classic dev board</text>
+  <line x1="348" y1="310" x2="772" y2="310" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="276" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="276" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="316" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">VCC</text>
+  <rect x="772" y="276" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="276" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="316" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">3V3</text>
+  <line x1="348" y1="410" x2="772" y2="410" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="376" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="376" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="416" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GND</text>
+  <rect x="772" y="376" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="376" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="416" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GND</text>
+  <line x1="348" y1="510" x2="772" y2="510" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="476" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="476" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="516" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">SDA</text>
+  <rect x="772" y="476" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="476" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="506" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GPIO 21</text>
+  <text x="922.0" y="528" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">I2C_SDA</text>
+  <line x1="348" y1="610" x2="772" y2="610" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="576" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="576" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="616" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">SCL</text>
+  <rect x="772" y="576" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="576" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="606" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GPIO 22</text>
+  <text x="922.0" y="628" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">I2C_SCL</text>
+  <line x1="348" y1="710" x2="772" y2="710" fill="none" stroke="#4f5d75" stroke-width="2" stroke-dasharray="6,5"/>
+  <rect x="513.5" y="676" width="93" height="22" rx="2" fill="#f5f5f5"/>
+  <text x="560.0" y="692" fill="#7a8399" font-size="15" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">OPTIONAL</text>
+  <rect x="48" y="676" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="676" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="198.0" y="716" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">AD0</text>
+  <rect x="772" y="676" width="300" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="772" y="676" width="300" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="922.0" y="706" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GND</text>
+  <text x="922.0" y="728" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">or leave open</text>
+  <text x="48" y="784" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">Address 0x68 if AD0 goes to GND or is left open. Address 0x69 if AD0 is tied to 3V3.</text>
+  <text x="48" y="818" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">Leave XDA, XCL, and INT unconnected.</text>
+  <text x="48" y="852" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">ESP32-S2, S3, or C3: any two free pins, then set I2C_SDA and I2C_SCL. The chip name is on</text>
+  <text x="48" y="878" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">the metal shield.</text>
+  <line x1="48" y1="928" x2="1072" y2="928" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+  <text x="48" y="960" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" letter-spacing="0.14em">LEGEND</text>
+  <line x1="160" y1="956" x2="196" y2="956" stroke="#4f5d75" stroke-width="2"/>
+  <text x="206" y="960" fill="#4f5d75" font-size="14" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">Connect this</text>
+  <line x1="330" y1="956" x2="366" y2="956" stroke="#4f5d75" stroke-width="2" stroke-dasharray="6,5"/>
+  <text x="376" y="960" fill="#4f5d75" font-size="14" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">Optional</text>
+</svg>

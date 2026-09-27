@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 992" width="1120" height="992" role="img" aria-labelledby="base-button-led-title base-button-led-desc">
+  <title id="base-button-led-title">Base station button and RGB LED</title>
+  <desc id="base-button-led-desc">The button runs from Arduino D2 to GND. The RGB LED uses D9, D6, and D5, each through 470 ohms, and the longest leg goes to GND for a common-cathode LED.</desc>
+  <defs>
+    <marker id="base-button-led-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/>
+    </marker>
+    <marker id="base-button-led-arrow-back" markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto">
+      <polygon points="8 0, 0 3, 8 6" fill="#4f5d75"/>
+    </marker>
+    <marker id="base-button-led-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/>
+    </marker>
+    <marker id="base-button-led-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#f5f5f5"/>
+  <text x="48" y="44" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" letter-spacing="0.14em">STEADY  ·  WIRING</text>
+  <text x="48" y="96" fill="#2d3142" font-size="36" font-family="'Noto Serif', Georgia, 'Times New Roman', serif">Base station button and RGB LED</text>
+  <text x="48" y="138" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">One path per line. Uno R4 or a Nano. Common-cathode LED shown.</text>
+  <text x="168" y="190" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle" letter-spacing="0.12em">ARDUINO PIN</text>
+  <text x="560" y="190" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle" letter-spacing="0.12em">IN THE PATH</text>
+  <text x="952" y="190" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle" letter-spacing="0.12em">OTHER END</text>
+  <line x1="288" y1="246" x2="440" y2="246" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <line x1="680" y1="246" x2="832" y2="246" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="212" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="212" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="168.0" y="242" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">D2</text>
+  <text x="168.0" y="264" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">INPUT_PULLUP</text>
+  <rect x="440" y="212" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="440" y="212" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="560.0" y="242" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Button</text>
+  <text x="560.0" y="264" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">No resistor</text>
+  <rect x="832" y="212" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="832" y="212" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="952.0" y="252" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GND</text>
+  <line x1="288" y1="346" x2="440" y2="346" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <line x1="680" y1="346" x2="832" y2="346" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="312" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="312" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="168.0" y="352" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">D9</text>
+  <rect x="440" y="312" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="440" y="312" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="560.0" y="352" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">470 Ω</text>
+  <rect x="832" y="312" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="832" y="312" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="952.0" y="352" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Red</text>
+  <line x1="288" y1="446" x2="440" y2="446" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <line x1="680" y1="446" x2="832" y2="446" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="412" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="412" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="168.0" y="452" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">D6</text>
+  <rect x="440" y="412" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="440" y="412" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="560.0" y="452" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">470 Ω</text>
+  <rect x="832" y="412" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="832" y="412" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="952.0" y="452" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Green</text>
+  <line x1="288" y1="546" x2="440" y2="546" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <line x1="680" y1="546" x2="832" y2="546" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="48" y="512" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="512" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="168.0" y="552" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">D5</text>
+  <rect x="440" y="512" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="440" y="512" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="560.0" y="552" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">470 Ω</text>
+  <rect x="832" y="512" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="832" y="512" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="952.0" y="552" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Blue</text>
+  <line x1="288" y1="646" x2="832" y2="646" fill="none" stroke="#4f5d75" stroke-width="2"/>
+  <rect x="522.5" y="612" width="75" height="22" rx="2" fill="#f5f5f5"/>
+  <text x="560.0" y="628" fill="#7a8399" font-size="15" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">DIRECT</text>
+  <rect x="48" y="612" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="48" y="612" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="168.0" y="642" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">Common leg</text>
+  <text x="168.0" y="664" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">Longest leg</text>
+  <rect x="832" y="612" width="240" height="68" rx="6" fill="#f5f5f5"/>
+  <rect x="832" y="612" width="240" height="68" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1.25"/>
+  <text x="952.0" y="642" fill="#2d3142" font-size="20" font-weight="600" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">GND</text>
+  <text x="952.0" y="664" fill="#4f5d75" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" text-anchor="middle">Common-cathode</text>
+  <text x="48" y="720" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">Common-anode instead: longest leg to 5V, and set COMMON_ANODE true in the sketch. Do not tie</text>
+  <text x="48" y="746" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">that leg to GND and 5V.</text>
+  <text x="48" y="780" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">Uno R4 pins supply at most 8 mA. 470 Ω keeps each color under that. Classic Nano and Uno R3</text>
+  <text x="48" y="806" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">pins are about 20 mA.</text>
+  <text x="48" y="840" fill="#4f5d75" font-size="16" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">The LED uses D5, D6, and D9 because tone() on a classic board disables PWM on D3 and D11.</text>
+  <line x1="48" y1="890" x2="1072" y2="890" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+  <text x="48" y="922" fill="#7a8399" font-size="13" font-family="'Liberation Mono', 'Courier New', Courier, monospace" letter-spacing="0.14em">LEGEND</text>
+  <line x1="160" y1="918" x2="196" y2="918" stroke="#4f5d75" stroke-width="2"/>
+  <text x="206" y="922" fill="#4f5d75" font-size="14" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif">One wire</text>
+</svg>

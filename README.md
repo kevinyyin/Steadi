@@ -114,6 +114,17 @@ A web service on render.com (not Vercel: the app needs a long-running process an
 
 Exercise mode (**Start exercise**) runs the person's plan: sit-to-stand sets (a beep per rep) and counter-supported balance holds. **Quick exercise** runs one set of 5 for demos.
 
+### Spoken cues (Grok Voice)
+
+The check-in screen reads each instruction, the rest beat, and the closing line aloud. The audio is made once with xAI text to speech and committed under `src/checkin/static/audio/`, so the tablet plays it with no internet. Any cue without a file is read by the browser's own voice. Speech never starts or stops a timer: the button and the "Go" buzzer do. Pressing the button mid-sentence stops the voice. **Listen** on the family summary plays it in the Grok voice when `XAI_API_KEY` is set (made on first listen, then cached in `data/audio/`), otherwise in the browser's voice.
+
+```bash
+uv run python scripts/make_voice.py --dry-run   # the cues it would make, and the cost (18 cues, about $0.04)
+XAI_API_KEY=... uv run python scripts/make_voice.py
+```
+
+It skips cues that already have a file, so re-running only pays for new or reworded ones (the filename is a hash of the wording and voice). `CHECKIN_VOICE` picks the voice (default `eve`). Commit the new files in `src/checkin/static/audio/`.
+
 ## Development
 
 ```bash

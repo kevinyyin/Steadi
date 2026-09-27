@@ -46,6 +46,16 @@ CHECKIN_STEPS = [
      "Put one foot right in front of the other, heel touching toe. Keep a hand just above the counter. "
      "Hold for 10 seconds."),
 ]
+READY = " Press the button when you're ready, or ask your helper to."  # added to a prompt while it waits
+
+
+def sit_to_stand_prompt(reps):
+    return f"Sit in a sturdy chair. On 'Go', stand up and sit down {reps} times. Each beep counts one."
+
+
+def hold_prompt(stance, target_s):
+    return (f"Stand at the counter, one hand resting on it, {steadi.STANCE_WORDS[stance]}. "
+            f"Hold for {target_s:g} seconds.")
 
 
 class Busy(Exception):
@@ -285,15 +295,11 @@ class Controller:
         sts, bal = plan["sit_to_stand"], plan["balance"]
         for i in range(sts["sets"]):
             sid = f"sit_to_stand#{i + 1}"
-            results[sid] = await self._sit_to_stand_set(
-                sid, f"Sit in a sturdy chair. On 'Go', stand up and sit down {sts['reps']} times. "
-                "Each beep counts one.", sts["reps"])
+            results[sid] = await self._sit_to_stand_set(sid, sit_to_stand_prompt(sts["reps"]), sts["reps"])
         for i in range(bal["holds"]):
             sid = f"hold_{bal['stance']}#{i + 1}"
-            feet = steadi.STANCE_WORDS[bal["stance"]]
             results[sid] = await self._hold(
-                sid, f"hold_{bal['stance']}", f"Stand at the counter, one hand resting on it, {feet}. "
-                f"Hold for {bal['target_s']:g} seconds.", bal["target_s"])
+                sid, f"hold_{bal['stance']}", hold_prompt(bal["stance"], bal["target_s"]), bal["target_s"])
         return results
 
     # ---- steps ---------------------------------------------------------------------------------
@@ -307,8 +313,7 @@ class Controller:
     async def _begin(self, sid, kind, prompt, **act):
         """Wait for the button, then cue "Go" and return its time."""
         self._status(sid, "waiting")
-        self.state.update(step=sid, prompt=prompt + " Press the button when you're ready, or ask your helper to.",
-                          live={})
+        self.state.update(step=sid, prompt=prompt + READY, live={})
         self._emit()
         self._pressed = False
         while not self._take_press():

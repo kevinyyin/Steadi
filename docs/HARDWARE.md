@@ -31,6 +31,12 @@ The page plays the buzzer tones (click the Button once so the browser allows sou
 
 Wiring: `PARTS_LIST.md` Section 1 (MPU-6050 VCC→3V3, GND→GND, SDA→GPIO 21, SCL→GPIO 22).
 
+![MPU-6050 wiring on a classic ESP32](diagrams/belt-mpu6050.svg)
+
+![Belt status LED and buzzer pins](diagrams/belt-status.svg)
+
+![How the ESP32 belt is powered](diagrams/belt-power.svg)
+
 ```bash
 cp firmware/esp32_imu/secrets.example.h firmware/esp32_imu/secrets.h   # then put in the hotspot name and password
 arduino-cli compile --fqbn esp32:esp32:esp32 firmware/esp32_imu
@@ -54,6 +60,12 @@ The dashboard's sensor line should read about 100 Hz. With `--source udp` the la
 ## 3. Arduino base station (USB serial)
 
 Wiring: `PARTS_LIST.md` Section 2 (button D2→GND, LED R/G/B on D9/D6/D5 via 470 Ω, buzzer on D8 via the transistor on an Uno R4). For a common-anode LED set `COMMON_ANODE = true` in the sketch.
+
+![Base station button and RGB LED](diagrams/base-button-led.svg)
+
+![Base-station buzzer on an Uno R4](diagrams/base-buzzer-r4.svg)
+
+![Base-station buzzer on a classic Nano or Uno R3](diagrams/base-buzzer-classic.svg)
 
 ```bash
 arduino-cli compile --fqbn arduino:renesas_uno:minima firmware/base_station   # Uno R4 Minima; arduino:avr:uno or arduino:avr:nano for classic boards

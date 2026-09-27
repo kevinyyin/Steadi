@@ -42,39 +42,9 @@ Safety by design: balance is done beside a counter, with no single-leg or eyes-c
 
 Every device sits behind an interface, so the simulator and an on-screen base station stand in for anything not plugged in. Parts, pins, and power: [`docs/PARTS_LIST.md`](docs/PARTS_LIST.md). Wire protocols: [`firmware/PROTOCOL.md`](firmware/PROTOCOL.md).
 
-```mermaid
-flowchart LR
-    subgraph belt["Belt (lower back)"]
-        imu["MPU-6050 IMU"] -->|I2C| esp["ESP32"]
-    end
-    phone["Phone + phyphox (backup)"]
-    simsrc["Simulator (labelled Simulated)"]
-    csv["CSV recording replay"]
+![How the devices connect](docs/diagrams/device-links.svg)
 
-    subgraph laptop["Laptop: checkin serve (Python)"]
-        src["Motion source interface"]
-        ctl["Session controller: cues each step, tags the stream"]
-        sig["signals.py: TUG time, stands, holds, sway"]
-        steadi["steadi.py: flags, baseline, level, exercise plan"]
-        store[("data/: people JSON, raw CSV recordings")]
-        api["FastAPI: REST + WebSocket + static page"]
-        src --> ctl --> sig --> steadi --> store
-        ctl --> api
-        steadi --> api
-    end
-
-    esp -->|"UDP broadcast, 100 Hz"| src
-    ctl -->|"LED colour (UDP)"| esp
-    phone -->|HTTP| src
-    simsrc --> src
-    csv --> src
-
-    base["Arduino base station: button, LED, buzzer"] <-->|"USB serial: BTN / CUE / LED"| ctl
-    vbase["On-screen base station"] <--> ctl
-
-    api <-->|"HTTP + WebSocket, local network"| tablet["Family dashboard (tablet browser)"]
-    api -.->|"optional family summary (numbers only, no name) and reading it aloud"| grok["xAI Grok API"]
-```
+![Inside the laptop: checkin serve](docs/diagrams/laptop-pipeline.svg)
 
 - **The laptop is the session controller.** For each step it sends the "Go" cue to the base station, tags the incoming motion stream with the step, scores the step when it ends, and pushes live state to the dashboard over a WebSocket.
 - **Timing starts on the "Go" cue**, as in the clinical protocol, so the sensor only has to detect the end: the final sit-down (trunk pitch settles and motion stops) for the TUG, rise cycles for chair stands and sit-to-stands, and a departure from the stance posture for balance. Scoring thresholds are named constants at the top of [`src/checkin/signals.py`](src/checkin/signals.py).
@@ -102,7 +72,21 @@ On a tablet on the same network, open http://LAPTOP-IP:8000.
 
 ## Hardware setup
 
-Wiring, firmware upload with `arduino-cli`, every sensor and base-station combination, the phone backup, replaying recordings, and the public demo deploy are in [`docs/HARDWARE.md`](docs/HARDWARE.md). The full build runs with:
+Each picture is one connection per line. Upload steps, every sensor and base-station combination, the phone backup, replaying recordings, and the public demo deploy are in [`docs/HARDWARE.md`](docs/HARDWARE.md).
+
+![MPU-6050 wiring on a classic ESP32](docs/diagrams/belt-mpu6050.svg)
+
+![Belt status LED and buzzer pins](docs/diagrams/belt-status.svg)
+
+![How the ESP32 belt is powered](docs/diagrams/belt-power.svg)
+
+![Base station button and RGB LED](docs/diagrams/base-button-led.svg)
+
+![Base-station buzzer on an Uno R4](docs/diagrams/base-buzzer-r4.svg)
+
+![Base-station buzzer on a classic Nano or Uno R3](docs/diagrams/base-buzzer-classic.svg)
+
+The full build runs with:
 
 ```bash
 uv run checkin serve --source udp --base serial --serial-port /dev/cu.usbmodem1101

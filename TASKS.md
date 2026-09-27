@@ -96,3 +96,12 @@ Decisions: walk timeout is flagged; name + date on print/download only; wrong va
 - [x] Balance stances use a feet-from-above prompt; sit-to-stand is halfway up, arms crossed
 - [x] Check-in: each step's local picture beside the instruction, plus the exercise pictures
 - [x] Family summary calls xAI Grok (`XAI_API_KEY`, `CHECKIN_GROK_MODEL`); same checks and template fallback
+
+## Grok Voice cues (2026-09-27)
+
+- [x] `voice.py`: phrase list from the controller's own prompts, hashed filenames, xAI TTS call, cache
+- [x] `scripts/make_voice.py` (skip existing, prune unused, `--dry-run` cost) and `static/audio/index.json`
+- [x] Check-in screen speaks waiting prompts, rest, and the closing line; hushes at Go; browser voice fallback
+- [x] Listen on the family summary (`/api/people/{id}/summary/audio`, only the served text, cached)
+- [x] Tests, ruff, README, API.md
+- [ ] Generate the audio with a real XAI_API_KEY and commit `src/checkin/static/audio/*.mp3` (no key on the agent VM)

@@ -185,6 +185,92 @@ function play(name) {
   }
 }
 
+// ---- voice: Grok-voiced files from scripts/make_voice.py, else the browser's own voice -------------
+// Speech only explains. The clock starts on the button and "Go" is the buzzer, so nothing waits for it.
+let voiceFiles = {}; // exact text → file in /static/audio
+let voiceNow = null; // the <audio> playing
+let voiceDone = null;
+fetch("/static/audio/index.json", { cache: "no-cache" })
+  .then((r) => (r.ok ? r.json() : {}))
+  .then((m) => (voiceFiles = m))
+  .catch(() => {});
+
+function hush() {
+  const done = voiceDone;
+  voiceDone = null;
+  if (voiceNow) voiceNow.pause();
+  voiceNow = null;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  if (done) done();
+}
+
+function browserVoice(text, finish) {
+  if (!window.speechSynthesis) {
+    finish();
+    return null;
+  }
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.9;
+  u.onend = u.onerror = finish;
+  speechSynthesis.speak(u);
+  return "browser";
+}
+
+// Says `text`: its pre-made file, else `url` (a server-made one), else the browser's voice. Resolves once
+// it starts to "ai", "browser", or null (no voice); `done` runs once when it ends or is hushed.
+function speak(text, url = null, done = () => {}) {
+  hush();
+  let over = false;
+  const finish = () => {
+    if (over) return;
+    over = true;
+    if (voiceDone === finish) voiceDone = null;
+    done();
+  };
+  voiceDone = finish;
+  const src = voiceFiles[text] ? `/static/audio/${voiceFiles[text]}` : url;
+  if (!src) return Promise.resolve(browserVoice(text, finish));
+  const el = new Audio(src);
+  voiceNow = el;
+  el.onended = () => {
+    if (voiceNow === el) voiceNow = null;
+    finish();
+  };
+  return el.play().then(() => "ai", () => { // no file, no network, or not allowed before a click
+    if (voiceNow !== el) return null; // hushed meanwhile
+    voiceNow = null;
+    return browserVoice(text, finish);
+  });
+}
+
+function cueVoice(text) {
+  if (document.visibilityState === "visible") speak(text);
+}
+
+function listenSummary() {
+  const b = $("listen-summary");
+  if (b.dataset.on) {
+    hush();
+    return;
+  }
+  b.dataset.on = "1";
+  b.textContent = "Getting the voice…";
+  b.setAttribute("aria-busy", "true");
+  const end = () => {
+    delete b.dataset.on;
+    b.removeAttribute("aria-busy");
+    b.textContent = "Listen";
+    $("family-voice").replaceChildren();
+  };
+  speak($("family-text").textContent, `/api/people/${encodeURIComponent(personId)}/summary/audio`, end).then((how) => {
+    if (!b.dataset.on) return;
+    b.removeAttribute("aria-busy");
+    b.textContent = "Stop";
+    $("family-voice").replaceChildren(how === "ai" ? h("span", "AI voice", { class: "tag tag-ai" }) : "");
+  });
+}
+
 // ---- views: Home, Check-in, For the doctor (the URL hash; no reloads, the WebSocket stays open) -----
 function show() {
   const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "home";
@@ -397,10 +483,18 @@ function renderCheckin(s) {
 
   const key = `${step ? step.id : ""}:${stage}`;
   if (key === stageKey) return;
+  const wasRest = stageKey?.endsWith(":rest"); // the rest keeps going when the next step starts waiting
   stageKey = key;
-  if (stage === "waiting") announce(`${title}. ${s.prompt}`);
-  else if (stage === "go") announce(`Go: ${stepTitle(step, steps)}.`);
-  else if (stage === "rest") announce("Done. Rest a moment.");
+  if (stage === "waiting") {
+    announce(`${title}. ${s.prompt}`);
+    cueVoice(s.prompt);
+  } else if (stage === "go" || stage === "moving") {
+    if (stage === "go") announce(`Go: ${stepTitle(step, steps)}.`);
+    hush(); // pressed mid-sentence: the step has started, so stop talking over it
+  } else if (stage === "rest" && !wasRest) {
+    announce("Done. Rest a moment.");
+    cueVoice("Done. Rest a moment.");
+  }
   keepFocus(stage === "waiting" ? $("button") : help ? $("helper") : $("cancel"));
 }
 
@@ -493,7 +587,10 @@ function renderState(s) {
   }
   renderWarnings();
   renderCheckin(s);
-  if (justEnded) $("done-answer").focus();
+  if (justEnded) {
+    $("done-answer").focus();
+    cueVoice($("done-answer").textContent);
+  }
   for (const id of ["start-checkin", "start-exercise", "start-checkin-2", "start-plan", "start-quick", "setup-go"]) {
     $(id).disabled = running;
   }
@@ -1169,6 +1266,7 @@ async function makeSummary(e) {
     b.textContent = "Making the summary…";
   }
   say("");
+  hush();
   try {
     const s = await api("GET", `/api/people/${encodeURIComponent(pid)}/summary`);
     if (pid !== personId) return; // the person changed while it was being made
@@ -1342,6 +1440,7 @@ $("close-profile").onclick = () => closeProfile();
 $("make-summary").onclick = makeSummary;
 $("make-summary-doctor").onclick = makeSummary;
 $("copy-summary").onclick = () => copyText($("family-text").textContent, $("copy-summary"), "Copy summary");
+$("listen-summary").onclick = listenSummary;
 $("copy-doctor").onclick = () => copyText(`${docHead()}\n\n${$("doctor-text").textContent}`, $("copy-doctor"), "Copy text");
 $("print-doctor").onclick = () => {
   document.body.classList.add("print-doctor"); // the print stylesheet then shows only the doctor text
@@ -1356,6 +1455,7 @@ $("download-doctor").onclick = () => {
 };
 addEventListener("hashchange", show);
 $("person").onchange = (e) => {
+  hush();
   personId = e.target.value;
   rememberPerson(personId);
   run(loadDashboard);

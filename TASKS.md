@@ -106,4 +106,7 @@ Checked against `main` at `e474ab3`. Paste-ready copy: `docs/devpost-draft.md`.
 - [x] Simek 2012 wording checked: 21% fully adherent (95% CI 15–29%), not "stick with a home program"
 - [x] $80 billion kept as non-fatal falls, 2020; CDC "every second, an older adult falls"; about 41,000 deaths
 - [x] Belt button, belt buzzer cues, 0.3 s balance break, sway-warning beep, and Grok Voice left out of the paste-ready text
-- [ ] Team names, stopwatch agreement numbers, per-unit cost, and a check that https://dhsquad.onrender.com is up
+- [x] Try it out: https://dhsquad.onrender.com returns the dashboard (`demo: true`, simulator). GitHub stays in the repository field.
+- [x] Gallery plan: 3:2, 5 MB, up to 15; nine slots, CAD only as an optional later frame. No CAD file in the repo.
+- [ ] Team names, stopwatch agreement numbers, per-unit cost
+- [ ] Gallery photos: belt on a person, belt close-up, base station, result light, exercise reps

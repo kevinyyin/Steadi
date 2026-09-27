@@ -546,6 +546,7 @@ function renderDone(s) {
     const chip = (id) => (flagged.has(id) ? (r.level === "red" ? "chip red" : "chip") : null);
     plainRow(list, "Stand up and walk", m.tug_timed_out ? "Didn't finish within 60 seconds" : secs(m.tug_s), "h3", chip("tug"));
     plainRow(list, "Walk again, naming animals", secs(m.dual_tug_s));
+    plainRow(list, "Animals named on that walk", animalsText(steps.dual_tug, true));
     plainRow(list, "Stand up from the chair", steps.chair_stand?.arms_used ? "Stopped: arms were needed"
       : m.chair_stands === null ? "Not measured" : `${m.chair_stands} times in 30 seconds`, "h3", chip("chair_stand"));
     // The balance flag belongs to the stance that ended the balance steps.
@@ -611,9 +612,15 @@ function connect() {
   };
   ws.onmessage = (e) => {
     const ev = JSON.parse(e.data);
-    if (ev.type === "state") renderState(ev);
-    else if (ev.type === "ai") renderAi(ev);
-    else if (ev.type === "cue") play(ev.name);
+    if (ev.type === "state") {
+      renderState(ev);
+      renderAnimals(ev);
+    } else if (ev.type === "ai") {
+      renderAi(ev);
+    } else if (ev.type === "cue") {
+      play(ev.name);
+      animalsCue(ev.name);
+    }
     else if (ev.type === "saved" && ev.person_id === personId) loadDashboard();
   };
   ws.onclose = () => {
@@ -621,6 +628,108 @@ function connect() {
     renderWarnings();
     setTimeout(connect, 1000);
   };
+}
+
+// ---- animals named on the second walk (animals.py): recorded from "Go" to its stop, then counted once --
+// Only the page that started the check-in and opted in records. Browsers allow the microphone only on
+// localhost or HTTPS, so the tablet at http://LAPTOP-IP:8000 can't; the simulator can use a sample clip.
+const SAMPLE_CLIP = "/static/sample/animals-walk.mp3";
+const micOk = () => !!(window.isSecureContext && navigator.mediaDevices && window.MediaRecorder);
+let animalsMode = null; // "mic" or "sample" for the check-in this page started; null: not counted
+let recording = null; // a promise of stop(), which resolves to the audio Blob or "sample"
+
+function animalsText(step, list = false) {
+  const a = step && step.animals;
+  if (!a || a.status === "not_counted") return "Animals: not counted";
+  if (a.status === "counting") return "Animals: counting…";
+  const rep = a.repeats ? ` (${a.repeats} repeat${a.repeats === 1 ? "" : "s"})` : "";
+  const names = list && a.list.length ? `: ${a.list.join(", ")}` : "";
+  return `Named ${a.named} animal${a.named === 1 ? "" : "s"}${rep}${names}${a.simulated ? " · Simulated sample" : ""}`;
+}
+
+function renderAnimalsOptin() {
+  const on = !!(state && state.stt);
+  $("animals-optin").hidden = !on;
+  if (!on) return;
+  const sim = state.source.simulated;
+  $("animals-sample-row").hidden = !sim;
+  $("animals-nomic").hidden = !$("animals-on").checked || (sim && $("animals-sample").checked) || micOk();
+}
+
+// Called from the "We're ready" click, so the permission prompt comes before the walk, not during it.
+async function chooseAnimals() {
+  animalsMode = null;
+  if (!(state && state.stt && $("animals-on").checked)) return;
+  if (state.source.simulated && $("animals-sample").checked) {
+    animalsMode = "sample";
+  } else if (micOk()) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      for (const t of stream.getTracks()) t.stop(); // recording starts on the walk's "Go"
+      animalsMode = "mic";
+    } catch {
+      // permission denied: the walk still counts, the animals don't
+    }
+  }
+}
+
+async function startRecording() {
+  if (animalsMode === "sample") {
+    const clip = new Audio(SAMPLE_CLIP); // the room hears what's sent
+    clip.play().catch(() => {});
+    return async () => (clip.pause(), "sample");
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const type = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported(t));
+  const rec = new MediaRecorder(stream, type ? { mimeType: type } : {});
+  const parts = [];
+  rec.ondataavailable = (e) => e.data.size && parts.push(e.data);
+  rec.start();
+  return () => new Promise((resolve) => {
+    rec.onstop = () => {
+      for (const t of stream.getTracks()) t.stop();
+      resolve(new Blob(parts, { type: rec.mimeType || "audio/webm" }));
+    };
+    rec.stop();
+  });
+}
+
+function stopRecording(send) {
+  const r = recording;
+  recording = null;
+  if (!r) return;
+  r.then(async (stop) => {
+    const body = await stop();
+    if (!send) return;
+    // The count arrives on the state stream; a failed upload just leaves "Animals: not counted".
+    await fetch(body === "sample" ? "/api/audio/dual_tug?sample=true" : "/api/audio/dual_tug",
+      body === "sample" ? { method: "POST" } : { method: "POST", headers: { "Content-Type": body.type }, body });
+  }).catch(() => {});
+}
+
+function animalsCue(name) {
+  if (!animalsMode || !state || state.step !== "dual_tug") return;
+  if (name === "start") {
+    recording = startRecording();
+    recording.catch(() => (recording = null));
+  } else if (name === "stop" || name === "error") {
+    stopRecording(true);
+  }
+}
+
+function renderAnimals(s) {
+  renderAnimalsOptin();
+  if (s.phase !== "running") {
+    stopRecording(false); // cancelled or failed mid-walk: nothing is sent
+    animalsMode = null;
+  }
+  const walk = (s.steps || []).find((x) => x.id === "dual_tug");
+  const waiting = (s.steps || []).some((x) => x.status === "waiting");
+  let text = "";
+  if (recording && s.step === "dual_tug") text = animalsMode === "sample" ? "Playing the sample recording (Simulated)" : "Recording for the animal count";
+  else if (s.phase === "running" && waiting && walk && walk.result && walk.result.animals) text = animalsText(walk.result, true);
+  setText($("animals-live"), text);
+  $("animals-live").hidden = !text;
 }
 
 // ---- dashboard ----------------------------------------------------------------------------------
@@ -992,7 +1101,7 @@ function renderResults(latest, t) {
     { name: "Timed Up and Go", flag: "tug", key: "tug_s", v: m.tug_s, unit: "s", text: m.tug_timed_out ? "Did not finish" : null,
       rule: `STEADI flags ${c.tug_s} s or more`, note: howNote(steps.tug), spark: t.series.tug_s },
     { name: "TUG naming animals", v: m.dual_tug_s, unit: "s", rule: "Ours, not STEADI: tracked vs. baseline",
-      note: howNote(steps.dual_tug) },
+      note: howNote(steps.dual_tug, Object.keys(steps).length ? animalsText(steps.dual_tug) : "") },
     { name: "Dual-task cost", key: "dual_task_cost_pct", v: m.dual_task_cost_pct, unit: "%",
       rule: "Ours, not STEADI: tracked vs. baseline", spark: t.series.dual_task_cost_pct },
     { name: "30-second chair stand", flag: "chair_stand", key: "chair_stands", v: m.chair_stands, unit: "stands",
@@ -1461,6 +1570,7 @@ function startCheckin() {
 function beginCheckin() {
   return run(async () => {
     try {
+      await chooseAnimals();
       await api("POST", "/api/session", { person_id: personId, mode: "checkin" });
       // the setup screen stays until the "running" state arrives
     } catch (e) {
@@ -1486,6 +1596,7 @@ for (const id of ["button", "helper"]) {
   $(id).onkeydown = (e) => e.repeat && e.preventDefault(); // holding Enter down is one press, not many
 }
 $("setup-go").onclick = beginCheckin;
+$("animals-on").onchange = $("animals-sample").onchange = renderAnimalsOptin;
 $("setup-back").onclick = () => {
   setup = false;
   renderCheckin(state);

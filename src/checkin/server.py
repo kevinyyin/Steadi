@@ -9,12 +9,12 @@ from datetime import date
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import ai, steadi, summary, voice
+from . import ai, animals, steadi, summary, voice
 from .controller import Busy
 
 log = logging.getLogger(__name__)
@@ -87,6 +87,7 @@ def create_app(controller, store, today=date.today, demo=False):
 
     controller.on_event = broadcast
     controller.state["demo"] = demo  # the page hides Add a person and Edit profile
+    controller.state["stt"] = animals.available()  # the page offers the animal count only with a key
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
@@ -221,6 +222,30 @@ def create_app(controller, store, today=date.today, demo=False):
     def stop(body: StopIn):
         controller.stop(body.reason)
         return {"ok": True}
+
+    # One recording per finished walk, so nobody can spend the key on audio of their own.
+    @app.post("/api/audio/{step}")
+    async def step_audio(step: str, request: Request, sample: bool = False):
+        if step != "dual_tug":
+            raise HTTPException(404, "only the walk while naming animals is recorded")
+        found = controller.finished_step(step)
+        if not found:
+            raise HTTPException(409, "no finished walk to add this to")
+        session_id, result = found
+        if "animals" in result:
+            raise HTTPException(409, "this walk's animals are already counted")
+        if not animals.available():
+            raise HTTPException(503, "animal counting is off: no XAI_API_KEY")
+        if int(request.headers.get("content-length") or 0) > animals.MAX_BYTES:
+            raise HTTPException(413, "recording too long")
+        if sample:
+            data, mime = animals.SAMPLE.read_bytes(), "audio/mpeg"
+        else:
+            data, mime = await request.body(), request.headers.get("content-type") or "audio/webm"
+        controller.add_to_step(session_id, step, result, {"animals": {"status": "counting", "simulated": sample}})
+        counted = {**await asyncio.to_thread(animals.count_audio, data, mime), "simulated": sample}
+        controller.add_to_step(session_id, step, result, {"animals": counted})
+        return counted
 
     @app.websocket("/ws")
     async def ws(socket: WebSocket):

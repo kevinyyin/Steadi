@@ -332,6 +332,11 @@
   .stop-btn { width: 100%; margin-top: clamp(16px, 3vw, 32px); }
   .setup-list { margin: clamp(20px, 3vw, 32px) 0 0; padding-left: 1.3em; display: grid; gap: 14px; max-width: 44ch;
     font-size: clamp(1.25rem, 1rem + 0.9vw, 1.7rem); font-weight: 600; line-height: 1.3; }
+  .animals-optin { margin-top: clamp(20px, 3vw, 32px); max-width: 48ch; }
+  .animals-optin .check { border-color: var(--line-dark); font-size: 1.15rem; font-weight: 600; }
+  .animals-optin .note { margin: 6px 0 12px; }
+  .animals-optin .note, #animals-live { color: var(--on-dark-muted); }
+  #animals-live { margin-top: 12px; font-size: clamp(1.1rem, 0.9rem + 0.8vw, 1.5rem); max-width: 40ch; }
 
   .idle-h { font-size: clamp(2rem, 1.2rem + 3vw, 3.6rem); }
   .choose { display: grid; gap: 0; border-top: 1px solid var(--line-dark); margin-top: clamp(20px, 3vw, 32px); }
@@ -647,6 +652,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           <li>A kitchen counter or sturdy table to stand beside.</li>
           <li>Someone stays beside you the whole time.</li>
         </ul>
+        <div id="animals-optin" class="animals-optin" hidden>
+          <label class="check"><input type="checkbox" id="animals-on"> Count the animals named on the second walk, with Grok</label>
+          <p class="note">Audio from this step is sent to xAI to count words, then deleted. Our measure, not a STEADI test.</p>
+          <label id="animals-sample-row" class="check" hidden><input type="checkbox" id="animals-sample" checked> Use the sample recording instead of the microphone (Simulated)</label>
+          <p id="animals-nomic" class="note" hidden>This browser can't use the microphone here (it needs localhost or HTTPS), so the animals won't be counted. Start the check-in from the laptop's browser at http://localhost:8000.</p>
+        </div>
         <div class="done-actions">
           <button id="setup-go" class="btn btn-white btn-big">We're ready: start</button>
           <button id="setup-back" class="btn btn-outline btn-big">Back</button>
@@ -664,6 +675,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             <p id="cue" class="cue" hidden></p>
             <p id="prompt"></p>
             <p id="live"></p>
+            <p id="animals-live" class="note" aria-live="polite" hidden></p>
             <div id="meter" class="meter" hidden><span></span></div>
           </div>
           <div class="press">

@@ -136,3 +136,12 @@ Checked against `main` at `9b760cd`. Paste-ready copy: `docs/devpost-draft.md`.
 - [x] Product renamed Steadi; shorter draft; Cursor and Grok usage in the README and the draft (no claims about other tools)
 - [ ] Team names, stopwatch agreement numbers, per-unit cost
 - [ ] Gallery photos: belt on a person, belt close-up, base station, result light, exercise reps
+
+## Showreel video (Remotion, 2026-09-28)
+
+- [x] Scaffold `showreel/` (create-video blank), add transitions, effects, paths, media, motion-blur
+- [x] Theme: Steadi tokens (ink, LED blue, green/amber/red), vendored Archivo variable font
+- [x] Scenes: signal cold open, stat hook, logo, STEADI loop, hardware, TUG, dual-task, chair stand, balance, levels, coach, dashboard, Grok, outro
+- [x] Assemble with TransitionSeries overlays (bar-aligned cuts), HUD, grain; soundtrack from `scripts/make_music.py`
+- [x] Studio preview (`showreel-studio` in .claude/launch.json, port 3100) + still checks
+- [x] Render MP4 to `showreel/out/steadi-showreel.mp4` and spot-check frames

@@ -6,6 +6,12 @@
       "runtimeExecutable": "uv",
       "runtimeArgs": ["run", "checkin", "serve", "--source", "sim", "--base", "virtual"],
       "port": 8000
+    },
+    {
+      "name": "showreel-studio",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "showreel", "run", "dev", "--", "--no-open", "--port", "3100"],
+      "port": 3100
     }
   ]
 }

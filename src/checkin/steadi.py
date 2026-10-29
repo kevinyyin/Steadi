@@ -1,6 +1,6 @@
 """STEADI screening logic: cutoffs, flags, fall-risk level, change from baseline, exercise plan, adherence.
 
-Wording rule (docs/COMPETITION.md Section 4): "flags increased fall risk", "change from baseline".
+Wording rule: "flags increased fall risk", "change from baseline".
 Never "diagnose", "predict", or "prevent" in anything shown to people.
 """
 

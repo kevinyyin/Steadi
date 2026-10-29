@@ -1,9 +1,10 @@
 # Hardware validation: belt vs stopwatch and hand count
 
-This is how we check the belt against a person with a stopwatch, and turn that into numbers and charts for the
-pitch. What it measures: **agreement between the belt and hand timing or counting**, on our own team and volunteers.
+This is how we check the belt against a person with a stopwatch, and turn that into numbers and charts. What it
+measures: **agreement between the belt and hand timing or counting**, on our own team and volunteers.
 It is not a clinical validation (no patients, no clinic, no fall outcomes), and the stopwatch has its own error, so
-don't call the result "accuracy". Say "agreed with a stopwatch within 1 second in 14 of 15 trials".
+don't call the result "accuracy". Report it as a count, for example "agreed with a stopwatch within 1 second in N of
+M trials".
 
 ## What you need
 
@@ -115,13 +116,15 @@ recording,step,truth,person,who,notes
 - **Not scored:** trials the belt couldn't score (data dropped out, or it didn't detect the sit-down). They're listed
   and counted, never dropped.
 
-For comparison, a 2024 study of a lower-back sensor running STEADI matched human raters within about 4% on TUG and
-8% on chair stands (docs/COMPETITION.md). You can say our numbers are "in the same range as" that if they are; don't
-say we reproduced or validated it.
+For comparison, a 2024 study of a lower-back sensor running STEADI (Archives of Gerontology and Geriatrics Plus)
+matched human raters within about 4% on TUG and 8% on chair stands. You can say our numbers are "in the same range
+as" that if they are; don't say we reproduced or validated it.
 
+## Reporting the results
 
-Say: "On 15 Timed Up and Go trials from 4 people, the belt was within 1 second of a stopwatch in 14, and agreed on
-which side of the 12-second cutoff in 15." "Agreement with hand timing and counting, not a clinical validation."
+Say, with the real counts filled in: "On N Timed Up and Go trials from P people, the belt was within 1 second of a
+stopwatch in K, and agreed on which side of the 12-second cutoff in J." "Agreement with hand timing and counting, not a
+clinical validation."
 
 Don't say: "accurate to 0.3 s", "clinically validated", "detects fall risk with 95% accuracy", or any number
 without its trial count. Anything from `--simulated` is labelled Simulated and isn't a result.

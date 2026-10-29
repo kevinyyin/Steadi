@@ -1,20 +1,21 @@
-# Final Build Parts List
+# Parts list
 
+Everything in the build: the belt, the base station, the laptop and tablet, and the test station. Pins and power are below; setup steps are in `HARDWARE.md`.
 
 ---
 
 ## 1. Belt Unit (worn at the lower back)
 
-| Part | Qty | Source | Notes |
-|---|---|---|---|
-| ESP32 dev board | 1 (+1 spare) | Hive (checkout) | Reads the sensor, streams over Wi-Fi |
-| MPU-6050 (GY-521 breakout) | 1 (+1 spare) | Hive (checkout) | 6-axis IMU; solder headers on at Hive |
-| Male pin header strip (1 row) | 1 | Hive (Bench 8) | For the MPU-6050s |
-| Female-to-female jumper wires | 4 (+spares) | Hive / Team | ESP32 ↔ MPU-6050; no breadboard on the belt |
-| USB power bank | 1 | Team "Battery Pack" or Personal | Powers the ESP32 through its USB port (see Section 6) |
-| USB cable for the ESP32 | 1 | Team | Micro-USB or USB-C, whichever the ESP32 has; short is better |
-| Elastic band + velcro, or a fanny pack | 1 belt | Hive / Personal | Holds everything firmly at the lower back |
-| Electrical tape or hot glue | a little | Hive / Team | Stops jumpers pulling loose while walking |
+| Part | Qty | Notes |
+|---|---|---|
+| ESP32 dev board | 1 (+1 spare) | Reads the sensor, streams over Wi-Fi |
+| MPU-6050 (GY-521 breakout) | 1 (+1 spare) | 6-axis IMU; solder the headers on |
+| Male pin header strip (1 row) | 1 | For the MPU-6050s |
+| Female-to-female jumper wires | 4 (+spares) | ESP32 ↔ MPU-6050; no breadboard on the belt |
+| USB power bank | 1 | Powers the ESP32 through its USB port (see Section 6) |
+| USB cable for the ESP32 | 1 | Micro-USB or USB-C, whichever the ESP32 has; short is better |
+| Elastic band + velcro, or a fanny pack | 1 belt | Holds everything firmly at the lower back |
+| Electrical tape or hot glue | a little | Stops jumpers pulling loose while walking |
 
 **Wiring**
 | MPU-6050 | ESP32 |
@@ -42,16 +43,16 @@ GPIO 21/22 are the default I2C pins on a classic ESP32 dev board. ESP32-S2/S3/C3
 
 ## 2. Base Station (on the table)
 
-| Part | Qty | Source | Notes |
-|---|---|---|---|
-| Arduino (Uno R4 preferred, or a Nano with soldered headers) | 1 | Team | Plus a matching USB cable to the laptop |
-| Breadboard | 1 | Team | |
-| Push button | 1 (+1 spare) | Hive (Bench 8) | Start button |
-| RGB LED | 1 | Team (on hand) | Green / amber / red result |
-| 470 Ω resistors | 3 | Team | One per LED color (safe for the Uno R4's 8 mA pin limit) |
-| Passive buzzer | 1 | Team (on hand) | Driven with `tone()` |
-| NPN transistor + 1 kΩ resistor | 1 each | Team (transistor packs) | Drives the buzzer on an Uno R4 (see note) |
-| Male-to-male jumper wires | ~8 | Team | |
+| Part | Qty | Notes |
+|---|---|---|
+| Arduino (Uno R4 preferred, or a Nano with soldered headers) | 1 | Plus a matching USB cable to the laptop |
+| Breadboard | 1 | |
+| Push button | 1 (+1 spare) | Start button |
+| RGB LED | 1 | Green / amber / red result |
+| 470 Ω resistors | 3 | One per LED color (safe for the Uno R4's 8 mA pin limit) |
+| Passive buzzer | 1 | Driven with `tone()` |
+| NPN transistor + 1 kΩ resistor | 1 each | Drives the buzzer on an Uno R4 (see note) |
+| Male-to-male jumper wires | ~8 | |
 
 **Wiring**
 | Part | Arduino pin | Notes |
@@ -77,34 +78,31 @@ GPIO 21/22 are the default I2C pins on a classic ESP32 dev board. ESP32-S2/S3/C3
 
 ## 3. Brains, Network, Display
 
-| Part | Source | Role |
-|---|---|---|
-| My laptop + charger | Personal | The only dev and demo machine: firmware uploads, session controller, dashboard |
-| Phone hotspot (preferred) or Access Point | Personal / Team | One network for laptop, ESP32, tablet, phones. Not venue Wi-Fi. |
-| Dell Venue 10 Pro tablet | Team | The "family" dashboard screen |
+| Part | Role |
+|---|---|
+| Laptop + charger | Firmware uploads, session controller, dashboard server |
+| Phone hotspot (preferred) or access point | One network for laptop, ESP32, tablet, phones. Avoid shared public Wi-Fi. |
+| Tablet (for example a Dell Venue 10 Pro) | The family dashboard screen |
 
 ---
 
 ## 4. Test Station
 
-| Part | Source | Used for |
-|---|---|---|
-| Standard arm chair | Venue | Timed Up and Go (STEADI setup) |
-| Straight-back chair, no arms, ~17-inch seat | Venue | 30-second chair stand and sit-to-stand exercises (STEADI setup); if only one chair, use this for both |
-| Masking tape + tape measure | Hive | A 3 m (10 ft) line for Timed Up and Go |
-| Counter or wall | Venue | Supported balance stances and balance exercises |
+| Part | Used for |
+|---|---|
+| Standard arm chair | Timed Up and Go (STEADI setup) |
+| Straight-back chair, no arms, ~17-inch seat | 30-second chair stand and sit-to-stand exercises (STEADI setup); if only one chair, use this for both |
+| Masking tape + tape measure | A 3 m (10 ft) line for Timed Up and Go |
+| Counter or wall | Supported balance stances and balance exercises |
 
 ---
 
-## 5. Backups & Upgrades
+## 5. Backups
 
-| Part | Source | When |
-|---|---|---|
-| Phone in a belt pouch running phyphox | Pixel / teammate's phone | Backup motion sensor if the ESP32 belt fails |
-| Second phone + wired earbuds with inline mic | Pixel / Personal | Audio upgrade: talk detection, animal counting |
-| Keyboard | Team | Fallback: teammate taps a key per animal |
-| Ultrasonic distance sensor | Hive (no checkout) | Optional automatic walk timer to double-check walking speed |
-| 4× AAA battery holder + AAA batteries | Hive (holder) + buy batteries | Backup ESP32 power if no power bank (see Section 6) |
+| Part | When |
+|---|---|
+| Phone in a belt pouch running phyphox | Backup motion sensor if the ESP32 belt fails |
+| 4× AAA battery holder + AAA batteries | Backup ESP32 power if no power bank (see Section 6) |
 
 ---
 
@@ -118,6 +116,7 @@ GPIO 21/22 are the default I2C pins on a classic ESP32 dev board. ESP32-S2/S3/C3
 
 **Backup: 4× AAA holder → ESP32's VIN (or 5V) pin + GND.** Four fresh AA/AAA alkalines give ~6 V, which the regulator handles.
 - **Don't use 3× AAA** (~4.5 V, sagging lower as they drain): too little headroom for the regulator, causing random resets when Wi-Fi transmits.
+- Solder the holder's leads to header pins.
 
 **Never:**
 - Connect batteries directly to the **3V3 pin**. It bypasses the regulator; anything above ~3.6 V can damage the ESP32.
@@ -127,23 +126,11 @@ GPIO 21/22 are the default I2C pins on a classic ESP32 dev board. ESP32-S2/S3/C3
 
 ---
 
-## 7. Hive Trip Checklist (one trip)
-**Before going:** run the setup prompt (Step 0 in `KICKOFF_PROMPT.md`): uv, arduino-cli, ESP32 core, both MPU-6050 libraries. Bring the laptop and charger. If the ESP32 doesn't show up as a port when plugged in, install its USB driver (CP210x or CH340).
+## 7. First assembly
 
-**At Hive:**
-1. Collect the parts marked Hive above.
-2. Solder headers onto both MPU-6050s (and the ESP32 if it has none).
-3. Wire ESP32 + MPU-6050; upload an I2C scanner with arduino-cli and watch `arduino-cli monitor` (expect 0x68); confirm live readings change when moved. If the Adafruit library refuses to start, it's likely a clone chip; use the Electronic Cats library.
-4. Test the spare MPU-6050.
+1. Install uv, arduino-cli, and the ESP32 core. If the ESP32 doesn't show up as a port when plugged in, install its USB driver (CP210x or CH340).
+2. Solder headers onto the MPU-6050s (and the ESP32 if it has none).
+3. Wire the ESP32 and MPU-6050, upload `firmware/imu_test`, and watch `arduino-cli monitor`: the readings should change when the board moves.
+4. Test the spare MPU-6050 the same way.
 5. If using the AAA backup, solder the holder leads to header pins.
-
----
-
-## 8. Not in the Build
-LilyPad, haptic motor breakout, vibration motor, WYZE cam, IMU breakout (out of stock; MPU-6050 covers it), microphone breakout, stepper motor, relays, RFID/NFC.
-
-## 9. Still to Confirm
-- A USB power bank.
-- Which Arduino (and matching cable) the team has for the base station.
-- ESP32's USB connector type (micro-USB vs. USB-C) vs. our cables.
-- The laptop, ESP32, and tablet can all join a phone hotspot and reach each other.
+6. Confirm the laptop, ESP32, and tablet can all join the hotspot and reach each other.

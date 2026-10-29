@@ -13,8 +13,8 @@ from checkin.server import create_app
 from checkin.sources import SimSource
 from checkin.store import Store
 
-TODAY = date(2026, 9, 26)
-PROFILE = {"name": "Judge", "age": 34, "sex": "female", "fallen": False, "unsteady": False, "worried": True}
+TODAY = date.today()  # exercise logs are stamped with the real date
+PROFILE = {"name": "Pat", "age": 34, "sex": "female", "fallen": False, "unsteady": False, "worried": True}
 
 
 @pytest.fixture
@@ -49,21 +49,21 @@ def test_dashboard_files_are_revalidated_on_every_load(client):
 def test_people_and_profiles(client):
     assert [p["id"] for p in client.get("/api/people").json()] == ["sim-dad"]
     r = client.post("/api/people", json=PROFILE)
-    assert r.status_code == 201 and r.json()["id"] == "judge"
-    r = client.put("/api/people/judge", json={**PROFILE, "age": 35})
+    assert r.status_code == 201 and r.json()["id"] == "pat"
+    r = client.put("/api/people/pat", json={**PROFILE, "age": 35})
     assert r.json()["profile"]["age"] == 35
-    assert client.put("/api/people/judge", json={**PROFILE, "age": 7}).status_code == 422
+    assert client.put("/api/people/pat", json={**PROFILE, "age": 7}).status_code == 422
     assert client.put("/api/people/sim-dad", json=PROFILE).status_code == 403
     assert client.get("/api/people/..%2Fsecrets/dashboard").status_code == 404
 
 
 def test_checkin_over_the_api_from_button_to_dashboard(client):
     client.post("/api/people", json=PROFILE)
-    assert client.post("/api/session", json={"person_id": "judge", "mode": "checkin"}).status_code == 202
-    assert client.post("/api/session", json={"person_id": "judge", "mode": "checkin"}).status_code == 409
+    assert client.post("/api/session", json={"person_id": "pat", "mode": "checkin"}).status_code == 202
+    assert client.post("/api/session", json={"person_id": "pat", "mode": "checkin"}).status_code == 409
     state = run_to_done(client)
     assert state["phase"] == "done" and all(s["status"] == "done" for s in state["steps"])
-    d = client.get("/api/people/judge/dashboard").json()
+    d = client.get("/api/people/pat/dashboard").json()
     latest = d["latest"]
     assert latest["simulated"] is True and latest["metrics"]["tug_s"] > 5
     assert latest["cutoffs"]["chair_label"] == "women 60–64 (the youngest STEADI group)"
@@ -75,32 +75,32 @@ def test_quick_exercise_and_adherence(client):
     client.post("/api/people", json=PROFILE)
     plan = {"sit_to_stand": {"sets": 1, "reps": 5}, "balance": {"stance": "feet_together", "holds": 0,
                                                                 "target_s": 20}}
-    assert client.post("/api/session", json={"person_id": "judge", "mode": "exercise", "plan": plan}).status_code == 202
+    assert client.post("/api/session", json={"person_id": "pat", "mode": "exercise", "plan": plan}).status_code == 202
     run_to_done(client)
-    d = client.get("/api/people/judge/dashboard").json()
+    d = client.get("/api/people/pat/dashboard").json()
     assert d["exercise"][-1]["sets"][0]["reps"] == 5
     assert d["adherence"]["weeks"][-1]["reps"] == 5
 
 
 def test_bad_session_requests(client):
     client.post("/api/people", json={**PROFILE, "age": None})
-    r = client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    r = client.post("/api/session", json={"person_id": "pat", "mode": "checkin"})
     assert r.status_code == 400 and "age and sex" in r.json()["detail"]
     assert client.post("/api/session", json={"person_id": "nobody", "mode": "checkin"}).status_code == 404
     bad_plan = {"sit_to_stand": {"sets": 1, "reps": 500}, "balance": {"stance": "feet_together", "holds": 0,
                                                                       "target_s": 20}}
-    r = client.post("/api/session", json={"person_id": "judge", "mode": "exercise", "plan": bad_plan})
+    r = client.post("/api/session", json={"person_id": "pat", "mode": "exercise", "plan": bad_plan})
     assert r.status_code == 422
 
 
 def test_cancel_over_the_api(client):
     client.post("/api/people", json=PROFILE)
-    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    client.post("/api/session", json={"person_id": "pat", "mode": "checkin"})
     while client.get("/api/state").json()["phase"] != "running":
         pass
     client.post("/api/stop", json={"reason": "cancel"})
     assert run_to_done(client)["phase"] == "stopped"
-    assert client.get("/api/people/judge/dashboard").json()["latest"] is None
+    assert client.get("/api/people/pat/dashboard").json()["latest"] is None
 
 
 def test_simulated_dad_dashboard(client):
@@ -183,47 +183,47 @@ def press_until(client, done, timeout_s=60):
 def test_animals_counted_once_during_the_checkin_and_saved_with_it(client, grok_stt):
     client.post("/api/people", json=PROFILE)
     assert client.post("/api/audio/dual_tug", content=b"x").status_code == 409  # no walk yet
-    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    client.post("/api/session", json={"person_id": "pat", "mode": "checkin"})
     press_until(client, lambda s: any(x["id"] == "dual_tug" and x["status"] == "done" for x in s["steps"]))
     r = client.post("/api/audio/dual_tug", content=b"WEBM", headers={"Content-Type": "audio/webm;codecs=opus"})
     assert r.status_code == 200 and r.json()["named"] == 3 and r.json()["simulated"] is False
     assert client.post("/api/audio/dual_tug", content=b"WEBM").status_code == 409  # one call per walk
     assert grok_stt == [(b"WEBM", "audio/webm;codecs=opus")]
     run_to_done(client)
-    walk = client.get("/api/people/judge/dashboard").json()["latest"]["steps"]["dual_tug"]
+    walk = client.get("/api/people/pat/dashboard").json()["latest"]["steps"]["dual_tug"]
     assert walk["animals"]["list"] == ["cat", "dog", "horse"] and walk["animals"]["repeats"] == 1
     assert walk["tug_s"] > 0  # the walk time is untouched
     assert "Animals named on that walk (our measure, not a STEADI test): 3 (1 repeat)" in \
-        client.get("/api/people/judge/summary").json()["doctor"]
+        client.get("/api/people/pat/summary").json()["doctor"]
 
 
 def test_sample_clip_after_the_checkin_is_saved_is_labelled_simulated(client, grok_stt):
     client.post("/api/people", json=PROFILE)
-    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    client.post("/api/session", json={"person_id": "pat", "mode": "checkin"})
     run_to_done(client)
     r = client.post("/api/audio/dual_tug?sample=true")
     assert r.status_code == 200 and r.json()["simulated"] is True
     assert grok_stt[0][1] == "audio/mpeg" and grok_stt[0][0][:3] in (b"ID3", b"\xff\xfb")
-    walk = client.get("/api/people/judge/dashboard").json()["latest"]["steps"]["dual_tug"]
+    walk = client.get("/api/people/pat/dashboard").json()["latest"]["steps"]["dual_tug"]
     assert walk["animals"]["simulated"] is True and walk["animals"]["named"] == 3
 
 
 def test_an_oversized_chunked_upload_is_refused_without_a_call(client, grok_stt, monkeypatch):
     monkeypatch.setattr("checkin.animals.MAX_BYTES", 10)
     client.post("/api/people", json=PROFILE)
-    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    client.post("/api/session", json={"person_id": "pat", "mode": "checkin"})
     run_to_done(client)
     chunks = iter([b"x" * 8, b"x" * 8])  # no Content-Length: sent chunked
     assert client.post("/api/audio/dual_tug", content=chunks).status_code == 413
     assert client.post("/api/audio/dual_tug", content=b"WEBM").status_code == 409  # this walk's one try is used
     assert grok_stt == []
-    walk = client.get("/api/people/judge/dashboard").json()["latest"]["steps"]["dual_tug"]
+    walk = client.get("/api/people/pat/dashboard").json()["latest"]["steps"]["dual_tug"]
     assert walk["animals"] == {"status": "not_counted", "reason": "recording too long", "simulated": False}
 
 
 def test_animal_count_respects_the_grok_switch(client, grok_stt):
     client.post("/api/people", json=PROFILE)
-    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    client.post("/api/session", json={"person_id": "pat", "mode": "checkin"})
     run_to_done(client)
     assert client.put("/api/ai", json={"on": False}).json()["on"] is False
     assert client.get("/api/state").json()["stt"] is False  # the page stops offering it
@@ -239,13 +239,13 @@ def test_animals_without_a_key_are_not_counted_and_the_walk_stands(client, monke
     monkeypatch.delenv("XAI_API_KEY", raising=False)
     assert client.get("/api/state").json()["stt"] is False  # the page doesn't offer it
     client.post("/api/people", json=PROFILE)
-    client.post("/api/session", json={"person_id": "judge", "mode": "checkin"})
+    client.post("/api/session", json={"person_id": "pat", "mode": "checkin"})
     run_to_done(client)
     assert client.post("/api/audio/dual_tug?sample=true").status_code == 503
     assert client.post("/api/audio/tug", content=b"x").status_code == 404
-    latest = client.get("/api/people/judge/dashboard").json()["latest"]
+    latest = client.get("/api/people/pat/dashboard").json()["latest"]
     assert "animals" not in latest["steps"]["dual_tug"] and latest["metrics"]["dual_task_cost_pct"] is not None
-    assert "Animals named" not in client.get("/api/people/judge/summary").json()["doctor"]  # never opted in
+    assert "Animals named" not in client.get("/api/people/pat/summary").json()["doctor"]  # never opted in
 
 
 def test_state_says_not_demo_by_default(client):

@@ -4,6 +4,10 @@ A lower-back motion belt, a one-button base station, and a family dashboard that
 
 Steadi is fall-risk screening: it flags increased fall risk and tracks change from baseline. It does not diagnose anything, predict when someone will fall, or guarantee prevention, and the device has not been through a trial.
 
+[▶ Demo video](https://www.youtube.com/watch?v=B9PmMZztPbk) · [Live demo](https://dhsquad.onrender.com) · [Devpost](https://devpost.com/software/steady-tl5mey)
+
+Built at HackGT 13 by Kevin Yin, Allen Hsieh and James Wang. Kevin wrote most of the software (38 of the repo's 46 commits).
+
 A public demo runs on the simulator at [dhsquad.onrender.com](https://dhsquad.onrender.com), and the [quick start](#quick-start-no-hardware) runs the same thing locally with no hardware.
 
 ## The problem
